@@ -76,6 +76,9 @@ public class Facturacion {
                 case 4:
                     consultarFactura(conn);
                     break;
+                case 5:
+                    reembolsarFactura(conn);
+                    break;
                 case 0:
                     terminar = true;
                     System.out.println("Saliendo del subsistema de Facturación...");
@@ -192,6 +195,30 @@ public class Facturacion {
                 System.out.println("Reembolsada: " + rs.getBoolean("reembolsada"));
                 System.out.println("Código de reserva: " + rs.getString("codReserva"));
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void reembolsarFactura(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("\nIndique el identificador de la factura:");
+        String codFactura = scanner.nextLine();
+
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery("SELECT * FROM Factura WHERE id = '" + codFactura + "'");
+            ResultSet rs = stmt.getResultSet();
+            if (!rs.next()) {
+                System.out.println("La factura no existe.");
+                return;
+            } else if (rs.getBoolean("reembolsada")) {
+                System.out.println("La factura ya ha sido reembolsada.");
+                return;
+            }
+            stmt.executeUpdate("UPDATE Factura SET reembolsada = TRUE WHERE id = '" + codFactura + "'");
+            System.out.println("Factura reembolsada con éxito.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
