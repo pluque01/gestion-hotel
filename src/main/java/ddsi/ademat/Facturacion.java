@@ -64,6 +64,9 @@ public class Facturacion {
                 case 1:
                     añadirMetodoPago(conn);
                     break;
+                case 2:
+                    eliminarMetodoPago(conn);
+                    break;
                 case 0:
                     terminar = true;
                     System.out.println("Saliendo del subsistema de Facturación...");
@@ -94,6 +97,29 @@ public class Facturacion {
                 return;
             }
             stmt.executeUpdate("UPDATE Cliente SET numTarjeta = '" + numTarjeta + "' WHERE nif = '" + nif + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void eliminarMetodoPago(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("\nIndique el NIF del cliente:");
+        String nif = scanner.nextLine();
+
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + nif + "'");
+            ResultSet rs = stmt.getResultSet();
+            if (!rs.next()) {
+                System.out.println("El cliente no existe.");
+                return;
+            } else if (rs.getString("numTarjeta") == null) {
+                System.out.println("El cliente no tiene un método de pago asociado.");
+                return;
+            }
+            stmt.executeUpdate("UPDATE Cliente SET numTarjeta = NULL WHERE nif = '" + nif + "'");
         } catch (SQLException e) {
             e.printStackTrace();
         }
