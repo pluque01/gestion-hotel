@@ -40,8 +40,8 @@ public class Facturacion {
 
     public static void mostrarTablas(Connection conn) {
         try {
-            System.out.println("Contenido de Stock:");
-            GestionHotel.mostrarTabla(conn, "Stock");
+            System.out.println("Contenido de Factura:");
+            GestionHotel.mostrarTabla(conn, "Factura");
         } catch (SQLException e) {
             System.out.println("Error al mostrar las tablas: " + e.getMessage());
         }
