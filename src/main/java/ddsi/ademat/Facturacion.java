@@ -67,6 +67,9 @@ public class Facturacion {
                 case 2:
                     eliminarMetodoPago(conn);
                     break;
+                case 3:
+                    generarFactura(conn);
+                    break;
                 case 0:
                     terminar = true;
                     System.out.println("Saliendo del subsistema de Facturación...");
@@ -120,6 +123,44 @@ public class Facturacion {
                 return;
             }
             stmt.executeUpdate("UPDATE Cliente SET numTarjeta = NULL WHERE nif = '" + nif + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void generarFactura(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("\nIndique el código de la reserva:");
+        String codReserva = scanner.nextLine();
+
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery("SELECT * FROM Reserva WHERE codReserva = '" + codReserva + "'");
+            ResultSet rs = stmt.getResultSet();
+            if (!rs.next()) {
+                System.out.println("La reserva no existe.");
+                return;
+            } else {
+                // Comprobar que el cliente tiene un método de pago asociado
+                stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + rs.getString("nif") + "'");
+                ResultSet rsCliente = stmt.getResultSet();
+                if (!rsCliente.next()) {
+                    System.out.println("El cliente no existe.");
+                    return;
+                } else if (rsCliente.getString("numTarjeta") == null) {
+                    System.out.println("El cliente no tiene un método de pago asociado.");
+                    return;
+                }
+            }
+            stmt.executeUpdate("INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Reserva', CURDATE(), '"
+                    + codReserva + "')");
+            // Devolver el identificador generado
+            stmt.executeQuery("SELECT LAST_INSERT_ID()");
+            ResultSet rsId = stmt.getResultSet();
+            rsId.next();
+            System.out.println("Factura generada con identificador " + rsId.getInt(1));
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
