@@ -14,6 +14,7 @@ public class Facturacion {
                     + "id INT NOT NULL AUTO_INCREMENT,"
                     + "concepto VARCHAR(255) NOT NULL,"
                     + "fecha DATE NOT NULL,"
+                    + "reembolsada BOOLEAN DEFAULT FALSE,"
                     + "codReserva INT NOT NULL,"
                     + "PRIMARY KEY (id),"
                     + "FOREIGN KEY (codReserva) REFERENCES Reserva(codReserva)"
@@ -23,16 +24,18 @@ public class Facturacion {
             e.printStackTrace();
         }
         // Inserción de datos en la tabla Factura
-        try {
-            Statement stmt = conn.createStatement();
-            stmt.executeUpdate(
-                    "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación doble', '2021-05-01', 1)");
-            stmt.executeUpdate(
-                    "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación individual', '2021-05-02', 2)");
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        // try {
+        // Statement stmt = conn.createStatement();
+        // stmt.executeUpdate(
+        // "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación
+        // doble', '2021-05-01', 1)");
+        // stmt.executeUpdate(
+        // "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación
+        // individual', '2021-05-02', 2)");
+        // stmt.close();
+        // } catch (SQLException e) {
+        // e.printStackTrace();
+        // }
     }
 
     public static void mostrarTablas(Connection conn) {
@@ -69,6 +72,9 @@ public class Facturacion {
                     break;
                 case 3:
                     generarFactura(conn);
+                    break;
+                case 4:
+                    consultarFactura(conn);
                     break;
                 case 0:
                     terminar = true;
@@ -161,6 +167,31 @@ public class Facturacion {
             rsId.next();
             System.out.println("Factura generada con identificador " + rsId.getInt(1));
 
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void consultarFactura(Connection conn) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("\nIndique el identificador de la factura:");
+        String codFactura = scanner.nextLine();
+
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery("SELECT * FROM Factura WHERE id = '" + codFactura + "'");
+            ResultSet rs = stmt.getResultSet();
+            if (!rs.next()) {
+                System.out.println("La factura no existe.");
+                return;
+            } else {
+                System.out.println("Identificador: " + rs.getString("id"));
+                System.out.println("Concepto: " + rs.getString("concepto"));
+                System.out.println("Fecha: " + rs.getString("fecha"));
+                System.out.println("Reembolsada: " + rs.getBoolean("reembolsada"));
+                System.out.println("Código de reserva: " + rs.getString("codReserva"));
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
