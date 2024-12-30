@@ -20,7 +20,7 @@ public class Main {
             Scanner scanner = new Scanner(System.in);
 
             while (!exit) {
-                System.out.println("\n--- Menú Principal ---");
+                System.out.println("\n---- Menú Principal ----");
                 System.out.println("1. Borrar y crear tablas");
                 System.out.println("2. Dar de alta nuevo pedido");
                 System.out.println("3. Mostrar contenido de las tablas");
