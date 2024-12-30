@@ -19,8 +19,8 @@ public class GestionClientes {
         }
     }
 
-    static boolean esUnica(Statement stmt, String NSegSoc) {
-        String sql = "select * from Empleado where NSegSoc = '" + NSegSoc + "'";
+    static boolean esUnica(Statement stmt, String dni) {
+        String sql = "select * from Cliente where dni = '" + dni + "'";
         boolean esUnica = true;
         try {
             ResultSet rs = stmt.executeQuery(sql);
@@ -44,7 +44,7 @@ public class GestionClientes {
                     + "dni VARCHAR(9) CONSTRAINT dni_clave_primaria PRIMARY KEY,"
                     + "domicilio VARCHAR(60),"
                     + "email VARCHAR(20) CONSTRAINT email_clave_candidata UNIQUE NOT NULL"
-                    + "puntosCliente INT,"
+                    + "puntos INT,"
                     + "rango ENUM('Inicial', 'Avanzado', 'VIP', 'Platino')"
                     + "tarjeta VARCHAR(20)"
                     + "FOREIGN KEY (cliente) REFERENCES Cliente(dni)"
@@ -215,7 +215,7 @@ public class GestionClientes {
             tarjeta = scanBanc.nextLine();
         }
 
-        sql = "insert into Cliente (Nombre, Apellidos, Telefono, Dni, Domicilio, correo, puntos, tarjeta) ";
+        sql = "insert into Cliente (nombre, apellidos, telefono, dni, domicilio, email, puntos, tarjeta) ";
         sql += "values ('";
         sql += nombreCliente;
         sql += "','";
@@ -266,7 +266,7 @@ public class GestionClientes {
             DNI = scanDNIEmp.nextLine();
         }
 
-        sql = "select * from Cliente where DNI='" + DNI + "'";
+        sql = "select * from Cliente where dni='" + DNI + "'";
 
         try {
             stmt.executeQuery(sql);
@@ -308,20 +308,20 @@ public class GestionClientes {
             DNI = scanDNIEmp.nextLine();
         }
 
-        sql = "select * from Cliente where DNI='" + DNI + "'";
+        sql = "select * from Cliente where dni='" + DNI + "'";
 
         try {
             ResultSet rs = stmt.executeQuery(sql);
             if (rs.next()) {
-                System.out.println("\nNombre: " + rs.getString("Nombre") + "\n");
-                System.out.println("\nApellidos: " + rs.getString("Apellidos") + "\n");
-                System.out.println("\nTelefono: " + rs.getString("Telefono") + "\n");
-                System.out.println("\nDNI: " + rs.getString("DNI") + "\n");
-                System.out.println("\nDomicilio: " + rs.getString("Domicilio") + "\n");
-                System.out.println("\nCorreo: " + rs.getString("Correo") + "\n");
-                System.out.println("\nPuntos: " + rs.getString("Puntos") + "\n");
-                System.out.println("\nRango: " + rs.getString("Rango") + "\n");
-                System.out.println("\nTarjeta: " + rs.getString("Tarjeta") + "\n");
+                System.out.println("\nNombre: " + rs.getString("nombre") + "\n");
+                System.out.println("\nApellidos: " + rs.getString("npellidos") + "\n");
+                System.out.println("\nTelefono: " + rs.getString("telefono") + "\n");
+                System.out.println("\nDNI: " + rs.getString("dni") + "\n");
+                System.out.println("\nDomicilio: " + rs.getString("domicilio") + "\n");
+                System.out.println("\nCorreo: " + rs.getString("email") + "\n");
+                System.out.println("\nPuntos: " + rs.getString("puntos") + "\n");
+                System.out.println("\nRango: " + rs.getString("rango") + "\n");
+                System.out.println("\nTarjeta: " + rs.getString("tarjeta") + "\n");
             } else {
                 System.out.println("\nNo existe el Cliente\n");
             }
@@ -355,20 +355,20 @@ public class GestionClientes {
             DNI = scanDNIEmp.nextLine();
         }
 
-        sql = "select * from Cliente where DNI='" + DNI + "'";
+        sql = "select * from Cliente where dni='" + DNI + "'";
 
         try {
             ResultSet rs = stmt.executeQuery(sql);
             if (rs.next()) {
-                System.out.println("\nNombre: " + rs.getString("Nombre") + "\n");
-                System.out.println("\nApellidos: " + rs.getString("Apellidos") + "\n");
-                System.out.println("\nTelefono: " + rs.getString("Telefono") + "\n");
-                System.out.println("\nDNI: " + rs.getString("DNI") + "\n");
-                System.out.println("\nDomicilio: " + rs.getString("Domicilio") + "\n");
-                System.out.println("\nCorreo: " + rs.getString("Correo") + "\n");
-                System.out.println("\nPuntos: " + rs.getString("Puntos") + "\n");
-                System.out.println("\nRango: " + rs.getString("Rango") + "\n");
-                System.out.println("\nTarjeta: " + rs.getString("Tarjeta") + "\n");
+                System.out.println("\nNombre: " + rs.getString("nombre") + "\n");
+                System.out.println("\nApellidos: " + rs.getString("apellidos") + "\n");
+                System.out.println("\nTelefono: " + rs.getString("telefono") + "\n");
+                System.out.println("\nDNI: " + rs.getString("dni") + "\n");
+                System.out.println("\nDomicilio: " + rs.getString("domicilio") + "\n");
+                System.out.println("\nCorreo: " + rs.getString("email") + "\n");
+                System.out.println("\nPuntos: " + rs.getString("puntos") + "\n");
+                System.out.println("\nRango: " + rs.getString("rango") + "\n");
+                System.out.println("\nTarjeta: " + rs.getString("tarjeta") + "\n");
             } else {
                 System.out.println("\nNo existe el Cliente\n");
             }
@@ -469,7 +469,7 @@ public class GestionClientes {
             tarjeta = scanBanc.nextLine();
         }
 
-        sql = "insert into Cliente (Nombre, Apellidos, Telefono, Dni, Domicilio, correo, puntos, tarjeta) ";
+        sql = "insert into Cliente (nombre, apellidos, telefono, dni, domicilio, email, puntos, tarjeta) ";
         sql += "values ('";
         sql += nombreCliente;
         sql += "','";
@@ -519,12 +519,12 @@ public class GestionClientes {
             DNI = scanDNIEmp.nextLine();
         }
 
-        sql = "select * from Cliente where DNI='" + DNI + "'";
+        sql = "select * from Cliente where dni='" + DNI + "'";
 
         try {
             ResultSet rs = stmt.executeQuery(sql);
             if (rs.next()) {
-                System.out.println("\nRango: " + rs.getString("Rango") + "\n");
+                System.out.println("\nRango: " + rs.getString("rango") + "\n");
             } else {
                 System.out.println("\nNo existe el Cliente\n");
             }
