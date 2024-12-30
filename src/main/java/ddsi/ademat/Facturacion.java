@@ -1,20 +1,34 @@
 package ddsi.ademat;
 
+import java.lang.Thread.State;
 import java.sql.*;
 import java.util.Scanner;
 
 public class Facturacion {
     public static void borrarYCrearTablas(Connection conn) {
+        // Creación de la tabla Factura
         try {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("DROP TABLE IF EXISTS Factura");
             stmt.executeUpdate("CREATE TABLE Factura ("
                     + "id INT NOT NULL AUTO_INCREMENT,"
+                    + "concepto VARCHAR(255) NOT NULL,"
                     + "fecha DATE NOT NULL,"
-                    + "cliente INT NOT NULL,"
+                    + "codReserva INT NOT NULL,"
                     + "PRIMARY KEY (id),"
-                    + "FOREIGN KEY (cliente) REFERENCES Cliente(id)"
+                    + "FOREIGN KEY (codReserva) REFERENCES Reserva(codReserva)"
                     + ")");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // Inserción de datos en la tabla Factura
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate(
+                    "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación doble', '2021-05-01', 1)");
+            stmt.executeUpdate(
+                    "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación individual', '2021-05-02', 2)");
             stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -61,6 +75,27 @@ public class Facturacion {
     }
 
     public static void añadirMetodoPago(Connection conn) {
-        // Implementar
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("\nIndique el NIF del cliente:");
+        String nif = scanner.nextLine();
+        System.out.print("Indique el número de la tarjeta:");
+        String numTarjeta = scanner.nextLine();
+
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + nif + "'");
+            ResultSet rs = stmt.getResultSet();
+            if (!rs.next()) {
+                System.out.println("El cliente no existe.");
+                return;
+            } else if (rs.getString("numTarjeta") != null) {
+                System.out.println("El cliente ya tiene un método de pago asociado.");
+                return;
+            }
+            stmt.executeUpdate("UPDATE Cliente SET numTarjeta = '" + numTarjeta + "' WHERE nif = '" + nif + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
