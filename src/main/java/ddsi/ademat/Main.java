@@ -42,6 +42,8 @@ public class Main {
                     case 3:
                         Facturacion.bucleInteractivo(conn);
                         break;
+                    case 7:
+                        Servicios.bucleOpciones(conn);
                     case 8:
                         mostrarTablas(conn);
                         break;
@@ -61,6 +63,7 @@ public class Main {
 
     public static void borrarYCrearTablas(Connection conn) {
         Facturacion.borrarYCrearTablas(conn);
+        Servicios.resetearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
