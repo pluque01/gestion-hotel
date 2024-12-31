@@ -69,6 +69,7 @@ public class Main {
 
     public static void mostrarTablas(Connection conn) {
         Facturacion.mostrarTablas(conn);
+        Servicios.mostrarTablas(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }
 }

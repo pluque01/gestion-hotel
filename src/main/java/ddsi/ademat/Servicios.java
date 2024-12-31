@@ -85,4 +85,13 @@ public class Servicios {
             e.printStackTrace();
         }
     }
+
+    public static void mostrarTablas(Connection conn) {
+        try {
+            System.out.println("Contenido de Actividad:");
+            GestionHotel.mostrarTabla(conn, "Actividad");
+        } catch (SQLException e) {
+            System.out.println("Error al mostrar las tablas: " + e.getMessage());
+        }
+    }
 }
