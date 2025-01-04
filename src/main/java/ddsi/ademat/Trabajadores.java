@@ -7,7 +7,14 @@ public class Trabajadores {
     public static void borrarYCrearTablas(Connection conn) {
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("DROP TABLE IF EXISTS Trabajadores");
+            try {
+                stmt.executeUpdate("DROP TABLE Trabajadores");
+            } catch (SQLException e) {
+                // Ignorar el error si la tabla no existe
+                if (!e.getMessage().contains("ORA-00942")) {
+                    throw e;
+                }
+            }
             stmt.executeUpdate("CREATE TABLE Trabajadores ("
                     + "dni CHAR(9) NOT NULL,"
                     + "nombre VARCHAR(20) NOT NULL,"
@@ -15,7 +22,7 @@ public class Trabajadores {
                     + "domicilio VARCHAR(50) NOT NULL,"
                     + "telefono VARCHAR(20) NOT NULL,"
                     + "email VARCHAR(50) NOT NULL,"
-                    + "puesto ENUM('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR') NOT NULL,"
+                    + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
                     + "nomina DECIMAL(10, 2) NOT NULL CHECK (nomina >= 0),"
                     + "PRIMARY KEY (dni)"
                     + ")");
@@ -25,9 +32,8 @@ public class Trabajadores {
         }
     }
 
-    public static void bucleInteractivo(Connection conn) {
+    public static void bucleInteractivo(Connection conn, Scanner scanner) {
         boolean terminar = false;
-        Scanner scanner = new Scanner(System.in);
 
         while (!terminar) {
             System.out.println("\n--- Menú de Gestión de Trabajadores ---");
@@ -39,37 +45,41 @@ public class Trabajadores {
             System.out.println("0. Salir");
 
             System.out.print("Elige una opción: ");
-            int choice = scanner.nextInt();
 
-            switch (choice) {
-                case 1:
-                    insertarTrabajador(conn, "Trabajadores");
-                    break;
-                case 2:
-                    eliminarTrabajador(conn, "Trabajadores");
-                    break;
-                case 3:
-                    modificarTrabajador(conn, "Trabajadores");
-                    break;
-                case 4:
-                    consultarTrabajador(conn, "Trabajadores");
-                    break;
-                case 5:
-                    mostrarTablas(conn);
-                    break;
-                case 0:
-                    terminar = true;
-                    System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
-                    break;
-                default:
-                    System.out.println("Opción desconocida. Por favor, elija una opción válida.");
+            if (scanner.hasNextInt()) {
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // Consumir el salto de línea
+
+                switch (choice) {
+                    case 1:
+                        insertarTrabajador(conn, scanner);
+                        break;
+                    case 2:
+                        eliminarTrabajador(conn, scanner);
+                        break;
+                    case 3:
+                        modificarTrabajador(conn, scanner);
+                        break;
+                    case 4:
+                        consultarTrabajador(conn, scanner);
+                        break;
+                    case 5:
+                        mostrarTablas(conn);
+                        break;
+                    case 0:
+                        terminar = true;
+                        System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
+                        break;
+                    default:
+                        System.out.println("Opción desconocida. Por favor, elija una opción válida.");
+                }
             }
         }
     }
 
-    public static void insertarTrabajador(Connection conn, String tableName) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Introduce los datos del trabajador:");
+    public static void insertarTrabajador(Connection conn, Scanner scanner) {
+        try {
+            System.out.println("Introduzca los datos del trabajador:");
             System.out.print("DNI: ");
             String dni = scanner.nextLine();
             System.out.print("Nombre: ");
@@ -86,8 +96,9 @@ public class Trabajadores {
             String puesto = scanner.nextLine();
             System.out.print("Nómina: ");
             double nomina = scanner.nextDouble();
+            scanner.nextLine(); // Consumir el salto de línea
 
-            String sql = "INSERT INTO " + tableName + " (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 pstmt.setString(2, nombre);
@@ -98,6 +109,7 @@ public class Trabajadores {
                 pstmt.setString(7, puesto);
                 pstmt.setDouble(8, nomina);
                 pstmt.executeUpdate();
+                pstmt.close();
                 System.out.println("Trabajador insertado correctamente.");
             }
         } catch (Exception e) {
@@ -105,12 +117,12 @@ public class Trabajadores {
         }
     }
 
-    public static void eliminarTrabajador(Connection conn, String tableName) {
-        try (Scanner scanner = new Scanner(System.in)) {
+    public static void eliminarTrabajador(Connection conn, Scanner scanner) {
+        try {
             System.out.print("Introduce el DNI del trabajador a eliminar: ");
             String dni = scanner.nextLine();
 
-            String sql = "DELETE FROM " + tableName + " WHERE dni = ?";
+            String sql = "DELETE FROM Trabajadores WHERE dni = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 int affectedRows = pstmt.executeUpdate();
@@ -125,12 +137,12 @@ public class Trabajadores {
         }
     }
 
-    public static void modificarTrabajador(Connection conn, String tableName) {
-        try (Scanner scanner = new Scanner(System.in)) {
+    public static void modificarTrabajador(Connection conn, Scanner scanner) {
+        try {
             System.out.print("Introduce el DNI del trabajador a modificar: ");
             String dni = scanner.nextLine();
 
-            String checkSql = "SELECT COUNT(*) FROM " + tableName + " WHERE dni = ?";
+            String checkSql = "SELECT COUNT(*) FROM Trabajadores WHERE dni = ?";
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                 checkStmt.setString(1, dni);
                 ResultSet rs = checkStmt.executeQuery();
@@ -157,7 +169,7 @@ public class Trabajadores {
             System.out.print("Nómina: ");
             String nominaStr = scanner.nextLine();
 
-            StringBuilder sql = new StringBuilder("UPDATE " + tableName + " SET ");
+            StringBuilder sql = new StringBuilder("UPDATE Trabajadores SET ");
             boolean first = true;
 
             if (!nombre.isEmpty()) {
@@ -219,12 +231,12 @@ public class Trabajadores {
         }
     }
 
-    public static void consultarTrabajador(Connection conn, String tableName) {
-        try (Scanner scanner = new Scanner(System.in)) {
+    public static void consultarTrabajador(Connection conn, Scanner scanner) {
+        try {
             System.out.print("Introduce el DNI del trabajador a consultar: ");
             String dni = scanner.nextLine();
 
-            String sql = "SELECT * FROM " + tableName + " WHERE dni = ?";
+            String sql = "SELECT * FROM Trabajadores WHERE dni = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 ResultSet rs = pstmt.executeQuery();

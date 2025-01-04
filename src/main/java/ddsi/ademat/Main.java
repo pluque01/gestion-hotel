@@ -43,7 +43,7 @@ public class Main {
                         Facturacion.bucleInteractivo(conn);
                         break;
                     case 4:
-                        Trabajadores.bucleInteractivo(conn);
+                        Trabajadores.bucleInteractivo(conn, scanner);
                         break;
                     case 8:
                         mostrarTablas(conn);
