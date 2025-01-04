@@ -6,6 +6,7 @@ import java.util.Scanner;
 public class GestionSuministros {
 
     public static void bucleInteractivo(Connection conn) {
+        verificarTabla(conn);
         Scanner scanner = new Scanner(System.in);
         boolean salir = false;
 
@@ -26,10 +27,18 @@ public class GestionSuministros {
                     anadirSuministro(conn, scanner);
                     break;
                 case 2:
-                    modificarSuministro(conn, scanner);
+                    if (!haySuministros(conn)) {
+                        System.out.println("No hay suministros para modificar.");
+                    } else {
+                        modificarSuministro(conn, scanner);
+                    }
                     break;
                 case 3:
-                    eliminarSuministro(conn, scanner);
+                    if (!haySuministros(conn)) {
+                        System.out.println("No hay suministros para eliminar.");
+                    } else {
+                        eliminarSuministro(conn, scanner);
+                    }
                     break;
                 case 4:
                     mostrarSuministros(conn);
@@ -43,22 +52,65 @@ public class GestionSuministros {
         }
     }
 
-    public static void borrarYCrearTablas(Connection conn) {
-        String sql = "CREATE TABLE IF NOT EXISTS suministro (" +
-                "id INT PRIMARY KEY AUTO_INCREMENT," +
-                "nombre VARCHAR(100)," +
-                "cantidad INT," +
-                "proveedor VARCHAR(100)," +
-                "ultima_fecha_reposicion DATE" +
-                ");";
-
+    public static void verificarTabla(Connection conn) {
         try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("DROP TABLE IF EXISTS suministro");
-            stmt.executeUpdate(sql);
-            System.out.println("Tabla 'suministro' creada correctamente.");
+            stmt.executeQuery("SELECT 1 FROM suministro WHERE ROWNUM = 1");
         } catch (SQLException e) {
-            System.out.println("Error al crear la tabla 'suministro': " + e.getMessage());
+            System.out.println("La tabla 'suministro' no existe. Creándola...");
+            crearTablaSuministroSiNoExiste(conn);
         }
+    }
+
+    public static void borrarYCrearTablas(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DROP TABLE suministro PURGE");
+            stmt.executeUpdate("DROP SEQUENCE suministro_seq");
+        } catch (SQLException e) {
+            System.out.println("No se pudieron eliminar las tablas o secuencias existentes: " + e.getMessage());
+        }
+
+        crearTablaSuministroSiNoExiste(conn);
+    }
+
+    public static void crearTablaSuministroSiNoExiste(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sqlTabla = "CREATE TABLE suministro (" +
+                    "id NUMBER PRIMARY KEY," +
+                    "nombre VARCHAR2(100)," +
+                    "cantidad NUMBER," +
+                    "proveedor VARCHAR2(100)," +
+                    "ultima_fecha_reposicion DATE" +
+                    ")";
+            stmt.executeUpdate(sqlTabla);
+
+            String sqlSecuencia = "CREATE SEQUENCE suministro_seq START WITH 1 INCREMENT BY 1";
+            stmt.executeUpdate(sqlSecuencia);
+
+            String sqlTrigger = "CREATE OR REPLACE TRIGGER suministro_trigger " +
+                    "BEFORE INSERT ON suministro FOR EACH ROW " +
+                    "BEGIN " +
+                    "IF :NEW.id IS NULL THEN " +
+                    ":NEW.id := suministro_seq.NEXTVAL; " +
+                    "END IF; " +
+                    "END;";
+            stmt.executeUpdate(sqlTrigger);
+
+            System.out.println("Tabla 'suministro', secuencia y trigger creados correctamente.");
+        } catch (SQLException e) {
+            System.out.println("Error al verificar o crear la tabla 'suministro': " + e.getMessage());
+        }
+    }
+
+    public static boolean haySuministros(Connection conn) {
+        String sql = "SELECT COUNT(*) FROM suministro";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al verificar si hay suministros: " + e.getMessage());
+        }
+        return false;
     }
 
     public static void anadirSuministro(Connection conn, Scanner scanner) {
