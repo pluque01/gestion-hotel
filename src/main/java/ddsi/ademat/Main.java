@@ -63,13 +63,13 @@ public class Main {
     }
 
     public static void borrarYCrearTablas(Connection conn) {
-        Facturacion.borrarYCrearTablas(conn);
+        // Facturacion.borrarYCrearTablas(conn);
         Trabajadores.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
-        Facturacion.mostrarTablas(conn);
+        // Facturacion.mostrarTablas(conn);
         Trabajadores.mostrarTablas(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }
