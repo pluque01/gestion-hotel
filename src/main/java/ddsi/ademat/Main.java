@@ -1,4 +1,5 @@
 package ddsi.ademat;
+import ddsi.ademat.GestionSuministros;
 
 import java.sql.*;
 import java.util.Scanner;
@@ -44,6 +45,8 @@ public class Main {
                         break;
                     case 4:
                         Trabajadores.bucleInteractivo(conn, scanner);
+                    case 5:
+                        GestionSuministros.bucleInteractivo(conn);
                         break;
                     case 8:
                         mostrarTablas(conn);
@@ -63,14 +66,16 @@ public class Main {
     }
 
     public static void borrarYCrearTablas(Connection conn) {
-        // Facturacion.borrarYCrearTablas(conn);
         Trabajadores.borrarYCrearTablas(conn);
+        Facturacion.borrarYCrearTablas(conn);
+        GestionSuministros.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
-        // Facturacion.mostrarTablas(conn);
         Trabajadores.mostrarTablas(conn);
+        Facturacion.mostrarTablas(conn);
+        GestionSuministros.mostrarSuministros(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }
 }
