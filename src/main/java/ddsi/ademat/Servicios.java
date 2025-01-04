@@ -24,7 +24,7 @@ public class Servicios {
 
             switch (opcion) {
                 case 1:
-                    anadirActividad(conn, scanner);
+                    registrarActividad(conn, scanner);
                     break;
                 case 2:
                     eliminarActividad(conn, scanner);
@@ -51,12 +51,18 @@ public class Servicios {
         }
     }
 
-    private static void anadirActividad(Connection conn, Scanner scanner) {
+    private static void registrarActividad(Connection conn, Scanner scanner) {
         try {
             System.out.print("Introduce el nombre de la actividad: ");
             String nombre = scanner.nextLine();
             System.out.print("Introduce el precio de la actividad: ");
             double precio = scanner.nextDouble();
+
+            if (precio < 0) {
+                System.out.println("El precio debe ser mayor o igual que 0.");
+                return;
+            }
+
             scanner.nextLine();
             System.out.print("Introduce la fecha y hora (DD/MM/YYYY HH:MM): ");
             String fechaHora = scanner.nextLine();
@@ -125,6 +131,17 @@ public class Servicios {
 
             System.out.print("Introduce tu DNI: ");
             String dni = scanner.nextLine();
+
+            /*PreparedStatement checkClienteStmt = conn.prepareStatement(
+                    "SELECT COUNT(*) AS cuenta FROM Cliente WHERE dni = ?");
+            checkClienteStmt.setString(1, dni);
+            ResultSet checkClienteRs = checkClienteStmt.executeQuery();
+
+            if (checkClienteRs.next() && checkClienteRs.getInt("cuenta") == 0) {
+                System.out.println("El DNI no está registrado como cliente. No es posible contratar actividades.");
+                return;
+            }*/
+
             System.out.print("Introduce el nombre de la actividad a contratar: ");
             String nombreActividad = scanner.nextLine();
 
@@ -277,7 +294,7 @@ public class Servicios {
             stmt.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al crear las tablas: " + e.getMessage());
         }
     }
 
