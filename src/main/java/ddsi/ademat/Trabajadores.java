@@ -71,7 +71,7 @@ public class Trabajadores {
                         System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
                         break;
                     default:
-                        System.out.println("Opción desconocida. Por favor, elija una opción válida.");
+                        System.out.println("Opción desconocida. Por favor, elige una opción válida.");
                 }
             }
         }
@@ -79,7 +79,7 @@ public class Trabajadores {
 
     public static void insertarTrabajador(Connection conn, Scanner scanner) {
         try {
-            System.out.println("Introduzca los datos del trabajador:");
+            System.out.println("Introduce los datos del trabajador:");
             System.out.print("DNI: ");
             String dni = scanner.nextLine();
             System.out.print("Nombre: ");
