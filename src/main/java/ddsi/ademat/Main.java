@@ -77,21 +77,23 @@ public class Main {
     }
 
     public static void borrarYCrearTablas(Connection conn) {
-        GestionReservas.borrarYCrearTablas(conn);
-        Trabajadores.borrarYCrearTablas(conn);
-        Facturacion.borrarYCrearTablas(conn);
-        Servicios.resetearTablas(conn);
-        GestionClientes.borrarYCrearTablas(conn);
-        GestionSuministros.borrarYCrearTablas(conn);
+        GestionHotel.borrarTablas(conn);
+        GestionClientes.crearTablas(conn);
+        GestionReservas.crearTablas(conn);
+        Trabajadores.crearTablas(conn);
+        Facturacion.crearTablas(conn);
+        Servicios.crearTablas(conn);
+        GestionSuministros.crearTablas(conn);
+        System.out.println("Tablas borradas y creadas con éxito");
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
-        GestionReservas.borrarYCrearTablas(conn);
+        GestionClientes.mostrarTablas(conn);
+        GestionReservas.mostrarTablas(conn);
         Trabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
         Servicios.mostrarTablas(conn);
-        GestionClientes.mostrarTablas(conn);
         GestionSuministros.mostrarSuministros(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }

@@ -4,17 +4,10 @@ import java.sql.*;
 import java.util.Scanner;
 
 public class Trabajadores {
-    public static void borrarYCrearTablas(Connection conn) {
+    public static void crearTablas(Connection conn) {
         try {
             Statement stmt = conn.createStatement();
-            try {
-                stmt.executeUpdate("DROP TABLE Trabajadores");
-            } catch (SQLException e) {
-                // Ignorar el error si la tabla no existe
-                if (!e.getMessage().contains("ORA-00942")) {
-                    throw e;
-                }
-            }
+            GestionHotel.borrarTabla(conn, "Trabajadores");
             stmt.executeUpdate("CREATE TABLE Trabajadores ("
                     + "dni CHAR(9) NOT NULL,"
                     + "nombre VARCHAR(20) NOT NULL,"
@@ -26,7 +19,14 @@ public class Trabajadores {
                     + "nomina DECIMAL(10, 2) NOT NULL CHECK (nomina >= 0),"
                     + "PRIMARY KEY (dni)"
                     + ")");
+
+            // Insertar dos trabajadores de ejemplo
+            stmt.executeUpdate(
+                    "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00)");
+            stmt.executeUpdate(
+                    "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
             stmt.close();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
