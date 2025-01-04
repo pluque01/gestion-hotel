@@ -27,43 +27,42 @@ public class Trabajadores {
 
     public static void bucleInteractivo(Connection conn) {
         boolean terminar = false;
-        try (Scanner scanner = new Scanner(System.in)) {
+        Scanner scanner = new Scanner(System.in);
 
-            while (!terminar) {
-                System.out.println("\n--- Menú de Gestión de Trabajadores ---");
-                System.out.println("1. Dar de alta trabajador");
-                System.out.println("2. Dar de baja trabajador");
-                System.out.println("3. Modificar datos de trabajador");
-                System.out.println("4. Consultar datos de trabajador");
-                System.out.println("5. Mostrar listado de trabajadores");
-                System.out.println("0. Salir");
+        while (!terminar) {
+            System.out.println("\n--- Menú de Gestión de Trabajadores ---");
+            System.out.println("1. Dar de alta trabajador");
+            System.out.println("2. Dar de baja trabajador");
+            System.out.println("3. Modificar datos de trabajador");
+            System.out.println("4. Consultar datos de trabajador");
+            System.out.println("5. Mostrar listado de trabajadores");
+            System.out.println("0. Salir");
 
-                System.out.print("Elige una opción: ");
-                int choice = scanner.nextInt();
+            System.out.print("Elige una opción: ");
+            int choice = scanner.nextInt();
 
-                switch (choice) {
-                    case 1:
-                        insertarTrabajador(conn, "Trabajadores");
-                        break;
-                    case 2:
-                        eliminarTrabajador(conn, "Trabajadores");
-                        break;
-                    case 3:
-                        modificarTrabajador(conn, "Trabajadores");
-                        break;
-                    case 4:
-                        consultarTrabajador(conn, "Trabajadores");
-                        break;
-                    case 5:
-                        mostrarTablas(conn);
-                        break;
-                    case 0:
-                        terminar = true;
-                        System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
-                        break;
-                    default:
-                        System.out.println("Opción desconocida. Por favor, elija una opción válida.");
-                }
+            switch (choice) {
+                case 1:
+                    insertarTrabajador(conn, "Trabajadores");
+                    break;
+                case 2:
+                    eliminarTrabajador(conn, "Trabajadores");
+                    break;
+                case 3:
+                    modificarTrabajador(conn, "Trabajadores");
+                    break;
+                case 4:
+                    consultarTrabajador(conn, "Trabajadores");
+                    break;
+                case 5:
+                    mostrarTablas(conn);
+                    break;
+                case 0:
+                    terminar = true;
+                    System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
+                    break;
+                default:
+                    System.out.println("Opción desconocida. Por favor, elija una opción válida.");
             }
         }
     }
