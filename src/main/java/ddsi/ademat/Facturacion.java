@@ -7,13 +7,24 @@ public class Facturacion {
     public static void borrarYCrearTablas(Connection conn) {
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("DROP TABLE IF EXISTS Factura");
+
+            //BORRA LA TABLA SI EXISTE, NO SOPORTA LA SENTENCIA IF EXIST
+            stmt.executeUpdate(
+                    "BEGIN " +
+                            "   EXECUTE IMMEDIATE 'DROP TABLE Factura'; " +
+                            "EXCEPTION " +
+                            "   WHEN OTHERS THEN " +
+                            "      IF SQLCODE != -942 THEN " +
+                            "         RAISE; " +
+                            "      END IF; " +
+                            "END;");
+
             stmt.executeUpdate("CREATE TABLE Factura ("
-                    + "id INT NOT NULL AUTO_INCREMENT,"
+                    + "id NUMBER NOT NULL,"    //NO PODEMOS USAR AUTO INCREMENT
                     + "fecha DATE NOT NULL,"
-                    + "cliente INT NOT NULL,"
-                    + "PRIMARY KEY (id),"
-                    + "FOREIGN KEY (cliente) REFERENCES Cliente(id)"
+                    + "cliente NUMBER NOT NULL,"
+                    + "PRIMARY KEY (id)"
+                    //+ "FOREIGN KEY (cliente) REFERENCES Cliente(id)"
                     + ")");
             stmt.close();
         } catch (SQLException e) {

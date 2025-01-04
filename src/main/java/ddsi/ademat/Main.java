@@ -52,6 +52,9 @@ public class Main {
                     case 6:
                         GestionClientes.bucleInteractivo(conn);
                         break;
+                    case 7:
+                        Servicios.bucleOpciones(conn);
+                        break;
                     case 8:
                         mostrarTablas(conn);
                         break;
@@ -72,6 +75,7 @@ public class Main {
     public static void borrarYCrearTablas(Connection conn) {
         Trabajadores.borrarYCrearTablas(conn);
         Facturacion.borrarYCrearTablas(conn);
+        Servicios.resetearTablas(conn);
         GestionClientes.borrarYCrearTablas(conn);
         GestionSuministros.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
@@ -80,6 +84,7 @@ public class Main {
     public static void mostrarTablas(Connection conn) {
         Trabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
+        Servicios.mostrarTablas(conn);
         GestionClientes.mostrarTablas(conn);
         GestionSuministros.mostrarSuministros(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
