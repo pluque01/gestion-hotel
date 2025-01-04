@@ -36,7 +36,7 @@ public class GestionClientes {
     public static void borrarYCrearTablas(Connection conn) {
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("DROP TABLE IF EXISTS Cliente");
+            stmt.executeUpdate("BEGIN EXECUTE IMMEDIATE 'DROP TABLE Cliente'; EXCEPTION WHEN OTHERS THEN NULL; END;");
             stmt.executeUpdate("CREATE TABLE Cliente ("
                     + "nombre VARCHAR(20),"
                     + "apellidos VARCHAR(40),"
