@@ -39,6 +39,9 @@ public class Main {
                     case 1:
                         borrarYCrearTablas(conn);
                         break;
+                    case 2:
+                        GestionReservas.bucleInteractivo(conn);
+                        break;
                     case 3:
                         Facturacion.bucleInteractivo(conn);
                         break;
@@ -60,11 +63,13 @@ public class Main {
     }
 
     public static void borrarYCrearTablas(Connection conn) {
+        GestionReservas.borrarYCrearTablas(conn);
         Facturacion.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
+        GestionReservas.borrarYCrearTablas(conn);
         Facturacion.mostrarTablas(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }
