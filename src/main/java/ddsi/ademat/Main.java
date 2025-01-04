@@ -21,7 +21,7 @@ public class Main {
             Scanner scanner = new Scanner(System.in);
 
             while (!exit) {
-                System.out.println("\n--- Menú Principal de Gestion de Hotel ---");
+                System.out.println("\n---- Menú Principal ----");
                 System.out.println("1. Borrar y crear tablas");
                 System.out.println("2. Subsistema de Gestión de Habitaciones");
                 System.out.println("3. Subsistema de Facturación");
@@ -45,8 +45,12 @@ public class Main {
                         break;
                     case 4:
                         Trabajadores.bucleInteractivo(conn, scanner);
+                        break;
                     case 5:
                         GestionSuministros.bucleInteractivo(conn);
+                        break;
+                    case 6:
+                        GestionClientes.bucleInteractivo(conn);
                         break;
                     case 8:
                         mostrarTablas(conn);
@@ -68,6 +72,7 @@ public class Main {
     public static void borrarYCrearTablas(Connection conn) {
         Trabajadores.borrarYCrearTablas(conn);
         Facturacion.borrarYCrearTablas(conn);
+        GestionClientes.borrarYCrearTablas(conn);
         GestionSuministros.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
@@ -75,6 +80,7 @@ public class Main {
     public static void mostrarTablas(Connection conn) {
         Trabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
+        GestionClientes.mostrarTablas(conn);
         GestionSuministros.mostrarSuministros(conn);
         // TODO: Añadir cada uno su función de mostrar tablas
     }
