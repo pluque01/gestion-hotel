@@ -177,32 +177,38 @@ public class Trabajadores {
                 first = false;
             }
             if (!apellidos.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("apellidos = ?");
                 first = false;
             }
             if (!domicilio.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("domicilio = ?");
                 first = false;
             }
             if (!telefono.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("telefono = ?");
                 first = false;
             }
             if (!email.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("email = ?");
                 first = false;
             }
             if (!puesto.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("puesto = ?");
                 first = false;
             }
             if (!nominaStr.isEmpty()) {
-                if (!first) sql.append(", ");
+                if (!first)
+                    sql.append(", ");
                 sql.append("nomina = ?");
             }
 
@@ -210,13 +216,20 @@ public class Trabajadores {
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
                 int index = 1;
-                if (!nombre.isEmpty()) pstmt.setString(index++, nombre);
-                if (!apellidos.isEmpty()) pstmt.setString(index++, apellidos);
-                if (!domicilio.isEmpty()) pstmt.setString(index++, domicilio);
-                if (!telefono.isEmpty()) pstmt.setString(index++, telefono);
-                if (!email.isEmpty()) pstmt.setString(index++, email);
-                if (!puesto.isEmpty()) pstmt.setString(index++, puesto);
-                if (!nominaStr.isEmpty()) pstmt.setDouble(index++, Double.parseDouble(nominaStr));
+                if (!nombre.isEmpty())
+                    pstmt.setString(index++, nombre);
+                if (!apellidos.isEmpty())
+                    pstmt.setString(index++, apellidos);
+                if (!domicilio.isEmpty())
+                    pstmt.setString(index++, domicilio);
+                if (!telefono.isEmpty())
+                    pstmt.setString(index++, telefono);
+                if (!email.isEmpty())
+                    pstmt.setString(index++, email);
+                if (!puesto.isEmpty())
+                    pstmt.setString(index++, puesto);
+                if (!nominaStr.isEmpty())
+                    pstmt.setDouble(index++, Double.parseDouble(nominaStr));
                 pstmt.setString(index, dni);
 
                 int affectedRows = pstmt.executeUpdate();

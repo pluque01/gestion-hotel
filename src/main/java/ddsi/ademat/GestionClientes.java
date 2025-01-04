@@ -7,8 +7,8 @@ import java.util.Scanner;
 public class GestionClientes {
 
     /*
-    Función para comprobar que una cadena sea entera y que no salte una excepción
-    que acabe con la ejecución de nuestro programa
+     * Función para comprobar que una cadena sea entera y que no salte una excepción
+     * que acabe con la ejecución de nuestro programa
      */
     static boolean esEntero(String cadena) {
         try {
@@ -108,10 +108,12 @@ public class GestionClientes {
 
     public static void darAltaCliente(Connection conn) {
         // try {
-        //     Statement stmt = conn.createStatement();
-        //     stmt.executeUpdate("INSERT INTO Cliente VALUES ('Rafael','Cordoba Lopez','684848493','28394823G','','Mesones 54','rafacorlopg@gmail.com', 0, 'Inicial')");
+        // Statement stmt = conn.createStatement();
+        // stmt.executeUpdate("INSERT INTO Cliente VALUES ('Rafael','Cordoba
+        // Lopez','684848493','28394823G','','Mesones 54','rafacorlopg@gmail.com', 0,
+        // 'Inicial')");
         // } catch (SQLException e) {
-        //     e.printStackTrace();
+        // e.printStackTrace();
         // }
 
         String sql;
@@ -497,10 +499,10 @@ public class GestionClientes {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    
+
     }
 
-    public static void consultarRangoCliente(Connection conn){
+    public static void consultarRangoCliente(Connection conn) {
         String sql;
         Statement stmt = null;
         try {
@@ -540,47 +542,58 @@ public class GestionClientes {
     }
 }
 
-
 // //INSERTAR AQUI DATOS CLIENTE
-// sql = "INSERT INTO cliente VALUES ('Rafael','Cordoba Lopez','684848493','28394823G','','Mesones 54','rafacorlopg@gmail.com', 0, 'Inicial')";
+// sql = "INSERT INTO cliente VALUES ('Rafael','Cordoba
+// Lopez','684848493','28394823G','','Mesones 54','rafacorlopg@gmail.com', 0,
+// 'Inicial')";
 // stmt.executeQuery(sql);
-// sql = "INSERT INTO cliente VALUES ('Nestor','Martinez Saez','764665788','78943659L','','Puentezuelas 12','nestormm@hotmail.es', 0, 'Inicial')";
+// sql = "INSERT INTO cliente VALUES ('Nestor','Martinez
+// Saez','764665788','78943659L','','Puentezuelas 12','nestormm@hotmail.es', 0,
+// 'Inicial')";
 // stmt.executeQuery(sql);
-// sql = "INSERT INTO cliente VALUES ('Luis','Bonilla Perez','656874677','7852279D','','Camino de Ronda 133','luisbp@gmail.com', 0, 'Inicial')";
+// sql = "INSERT INTO cliente VALUES ('Luis','Bonilla
+// Perez','656874677','7852279D','','Camino de Ronda 133','luisbp@gmail.com', 0,
+// 'Inicial')";
 // stmt.executeQuery(sql);
-// sql = "INSERT INTO cliente VALUES ('Marta','Ruiz Gomez','638572999','78482227Y','','Recogidas 42','martarg@gmail.com', 0, 'Inicial')";
+// sql = "INSERT INTO cliente VALUES ('Marta','Ruiz
+// Gomez','638572999','78482227Y','','Recogidas 42','martarg@gmail.com', 0,
+// 'Inicial')";
 // stmt.executeQuery(sql);
-// sql = "INSERT INTO cliente VALUES ('Manuel','Fuertes Gonzalez','649837468','28846380R','','Arabial 23','manuelfg@hotmail.com', 0, 'Inicial')";
+// sql = "INSERT INTO cliente VALUES ('Manuel','Fuertes
+// Gonzalez','649837468','28846380R','','Arabial 23','manuelfg@hotmail.com', 0,
+// 'Inicial')";
 // stmt.executeQuery(sql);
 
+// public void darAltaCliente(String DNI, String Nombre, String Apellidos,
+// String Telefono, String Correo, int puntosCliente, String rango) {
+// Cliente c = new Cliente(DNI, Nombre, Apellidos, Telefono, Correo,
+// puntosCliente, rango);
+// c.save();
+// }
 
-// public void darAltaCliente(String DNI, String Nombre, String Apellidos, String Telefono, String Correo, int puntosCliente, String rango) {
-    //     Cliente c = new Cliente(DNI, Nombre, Apellidos, Telefono, Correo, puntosCliente, rango);
-    //     c.save();
-    // }
+// public void darBajaCliente(String DNI) {
+// Cliente c = Cliente.find(DNI);
+// c.delete();
+// }
 
-    // public void darBajaCliente(String DNI) {
-    //     Cliente c = Cliente.find(DNI);
-    //     c.delete();
-    // }
+// public void consultarCliente(String DNI) {
+// Cliente c = Cliente.find(DNI);
+// System.out.println(c);
+// }
 
-    // public void consultarCliente(String DNI) {
-    //     Cliente c = Cliente.find(DNI);
-    //     System.out.println(c);
-    // }
+// public void modificarCliente(String DNI, String Nombre, String Apellidos,
+// String Telefono, String Correo, int puntosCliente, String rango) {
+// Cliente c = Cliente.find(DNI);
+// c.setNombre(Nombre);
+// c.setApellidos(Apellidos);
+// c.setTelefono(Telefono);
+// c.setCorreo(Correo);
+// c.setPuntosCliente(puntosCliente);
+// c.setRango(rango);
+// c.save();
+// }
 
-    // public void modificarCliente(String DNI, String Nombre, String Apellidos, String Telefono, String Correo, int puntosCliente, String rango) {
-    //     Cliente c = Cliente.find(DNI);
-    //     c.setNombre(Nombre);
-    //     c.setApellidos(Apellidos);
-    //     c.setTelefono(Telefono);
-    //     c.setCorreo(Correo);
-    //     c.setPuntosCliente(puntosCliente);
-    //     c.setRango(rango);
-    //     c.save();
-    // }
-
-    // public void consultarRangoCliente(String DNI) {
-    //     Cliente c = Cliente.find(DNI);
-    //     System.out.println(c.getRango());
-    // }
+// public void consultarRangoCliente(String DNI) {
+// Cliente c = Cliente.find(DNI);
+// System.out.println(c.getRango());
+// }

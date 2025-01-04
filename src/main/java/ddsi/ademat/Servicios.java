@@ -132,15 +132,19 @@ public class Servicios {
             System.out.print("Introduce tu DNI: ");
             String dni = scanner.nextLine();
 
-            /*PreparedStatement checkClienteStmt = conn.prepareStatement(
-                    "SELECT COUNT(*) AS cuenta FROM Cliente WHERE dni = ?");
-            checkClienteStmt.setString(1, dni);
-            ResultSet checkClienteRs = checkClienteStmt.executeQuery();
-
-            if (checkClienteRs.next() && checkClienteRs.getInt("cuenta") == 0) {
-                System.out.println("El DNI no está registrado como cliente. No es posible contratar actividades.");
-                return;
-            }*/
+            /*
+             * PreparedStatement checkClienteStmt = conn.prepareStatement(
+             * "SELECT COUNT(*) AS cuenta FROM Cliente WHERE dni = ?");
+             * checkClienteStmt.setString(1, dni);
+             * ResultSet checkClienteRs = checkClienteStmt.executeQuery();
+             * 
+             * if (checkClienteRs.next() && checkClienteRs.getInt("cuenta") == 0) {
+             * System.out.
+             * println("El DNI no está registrado como cliente. No es posible contratar actividades."
+             * );
+             * return;
+             * }
+             */
 
             System.out.print("Introduce el nombre de la actividad a contratar: ");
             String nombreActividad = scanner.nextLine();
@@ -156,7 +160,8 @@ public class Servicios {
             }
 
             PreparedStatement stmt = conn.prepareStatement(
-                    "SELECT id, aforo - (SELECT COUNT(*) FROM contrata WHERE contrata.id = Actividad.id) AS aforo_disponible " +
+                    "SELECT id, aforo - (SELECT COUNT(*) FROM contrata WHERE contrata.id = Actividad.id) AS aforo_disponible "
+                            +
                             "FROM Actividad WHERE nombre = ?");
             stmt.setString(1, nombreActividad);
             ResultSet rs = stmt.executeQuery();
@@ -208,7 +213,9 @@ public class Servicios {
             ResultSet rs = stmt.executeQuery("SELECT id, nombre, precio, horario, aforo FROM Actividad");
 
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: "
+                        + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: "
+                        + rs.getInt("aforo"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar actividades: " + e.getMessage());
@@ -221,7 +228,8 @@ public class Servicios {
             ResultSet rs = stmt.executeQuery("SELECT nombre, precio, horario, aforo FROM Actividad");
 
             while (rs.next()) {
-                System.out.println("Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
+                System.out.println("Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio")
+                        + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar actividades: " + e.getMessage());
@@ -240,7 +248,9 @@ public class Servicios {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: "
+                        + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: "
+                        + rs.getInt("aforo"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar actividades filtradas: " + e.getMessage());
@@ -251,7 +261,7 @@ public class Servicios {
         try {
             Statement stmt = conn.createStatement();
 
-            //Eliminar tabla contrata si existe
+            // Eliminar tabla contrata si existe
             stmt.executeUpdate(
                     "BEGIN " +
                             "   EXECUTE IMMEDIATE 'DROP TABLE contrata'; " +
@@ -262,7 +272,7 @@ public class Servicios {
                             "      END IF; " +
                             "END;");
 
-            //Eliminar tabla Actividad si existe
+            // Eliminar tabla Actividad si existe
             stmt.executeUpdate(
                     "BEGIN " +
                             "   EXECUTE IMMEDIATE 'DROP TABLE Actividad'; " +
@@ -273,7 +283,7 @@ public class Servicios {
                             "      END IF; " +
                             "END;");
 
-            //Tabla Actividad
+            // Tabla Actividad
             stmt.executeUpdate("CREATE TABLE Actividad ("
                     + "id NUMBER NOT NULL,"
                     + "nombre VARCHAR2(50) NOT NULL,"
@@ -283,12 +293,12 @@ public class Servicios {
                     + "PRIMARY KEY (id)"
                     + ")");
 
-            //Tabla Contrata
+            // Tabla Contrata
             stmt.executeUpdate("CREATE TABLE contrata ("
                     + "dni VARCHAR2(20) NOT NULL,"
                     + "id NUMBER NOT NULL,"
                     + "PRIMARY KEY (dni, id),"
-                    //+ "FOREIGN KEY (dni) REFERENCES Cliente(dni),"
+                    // + "FOREIGN KEY (dni) REFERENCES Cliente(dni),"
                     + "FOREIGN KEY (id) REFERENCES Actividad(id)"
                     + ")");
             stmt.close();

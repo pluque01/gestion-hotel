@@ -20,7 +20,7 @@ public class GestionSuministros {
 
             System.out.print("Elige una opción: ");
             int opcion = scanner.nextInt();
-            scanner.nextLine();  // Consumir la nueva línea
+            scanner.nextLine(); // Consumir la nueva línea
 
             switch (opcion) {
                 case 1:
@@ -199,7 +199,9 @@ public class GestionSuministros {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             System.out.println("\n--- Lista de Suministros ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: " + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor") + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: "
+                        + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor")
+                        + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar los suministros: " + e.getMessage());
