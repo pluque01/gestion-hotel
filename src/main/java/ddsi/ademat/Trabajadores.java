@@ -19,7 +19,7 @@ public class Trabajadores {
                     + "telefono VARCHAR(20) NOT NULL,"
                     + "email VARCHAR(50) NOT NULL,"
                     + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
-                    + "nomina DECIMAL(10, 2) NOT NULL CHECK (nomina >= 0),"
+                    + "nomina DECIMAL(10, 2) NOT NULL,"
                     + "fecha_contratacion DATE DEFAULT SYSDATE,"
                     + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
                     + "PRIMARY KEY (dni)"
@@ -36,30 +36,37 @@ public class Trabajadores {
             e.printStackTrace();
         }
 
-        // Creamos el disparador
+        // Comprobamos si el disparador ya existe
         try {
+            DatabaseMetaData dbMetaData = conn.getMetaData();
+            ResultSet rs = dbMetaData.getTables(null, null, "TRG_VERIFICAR_SUELDO", new String[]{"TRIGGER"});
+            if (rs.next()) {
+            System.out.println("El disparador 'trg_verificar_sueldo' ya existe.");
+            } else {
+            // Si no existe creamos el disparador
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
-                    + "BEFORE INSERT OR UPDATE ON Trabajadores "
-                    + "FOR EACH ROW "
-                    + "DECLARE "
-                    + "    salario_minimo CONSTANT NUMBER := 1134; "
-                    + "    fecha_actual DATE := SYSDATE; "
-                    + "    fecha_ultimo_aumento DATE; "
-                    + "BEGIN "
-                    + "    IF :NEW.nomina < salario_minimo THEN "
-                    + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
-                    + "    END IF; "
-                    + "    IF UPDATING AND MONTHS_BETWEEN(fecha_actual, fecha_ultimo_aumento) > 24 THEN "
-                    + "        raise_application_error(-20602, 'El trabajador no puede estar más de dos años sin recibir un aumento de sueldo'); "
-                    + "    END IF; "
-                    + "END;";
+                + "BEFORE INSERT OR UPDATE ON Trabajadores "
+                + "FOR EACH ROW "
+                + "DECLARE "
+                + "    salario_minimo CONSTANT NUMBER := 1134; "
+                + "    fecha_actual DATE := SYSDATE; "
+                + "    fecha_ultimo_aumento DATE; "
+                + "BEGIN "
+                + "    IF :NEW.nomina < salario_minimo THEN "
+                + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
+                + "    END IF; "
+                + "    IF UPDATING AND MONTHS_BETWEEN(fecha_actual, fecha_ultimo_aumento) > 24 THEN "
+                + "        raise_application_error(-20602, 'El trabajador no puede estar más de dos años sin recibir un aumento de sueldo'); "
+                + "    END IF; "
+                + "END;";
 
             // Ejecutar el código del disparador
-            stmt = conn.createStatement();
             stmt.execute(triggerSQL);
             System.out.println("Disparador 'trg_verificar_sueldo' creado correctamente.");
-
+            stmt.close();
+            }
+            rs.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -299,8 +306,8 @@ public class Trabajadores {
                     System.out.println("Email: " + rs.getString("email"));
                     System.out.println("Puesto: " + rs.getString("puesto"));
                     System.out.println("Nómina: " + rs.getDouble("nomina"));
-                    System.out.println("Fecha de contratación: " + rs.getDate("fecha_contratacion"));
-                    System.out.println("Fecha del último aumento: " + rs.getDate("fecha_ultimo_aumento"));
+                    System.out.println("Fecha de contratación: " + rs.getTimestamp("fecha_contratacion"));
+                    System.out.println("Fecha del último aumento: " + rs.getTimestamp("fecha_ultimo_aumento"));
                 } else {
                     System.out.println("No se encontró ningún trabajador con el DNI proporcionado.");
                 }
@@ -312,8 +319,9 @@ public class Trabajadores {
 
     public static void mostrarTablas(Connection conn) {
         try {
-            System.out.println("Contenido de Trabajadores:");
+            System.out.println("\n--- Contenido de Trabajadores ---");
             GestionHotel.mostrarTabla(conn, "Trabajadores");
+            System.out.println();
         } catch (SQLException e) {
             System.out.println("Error al mostrar las tablas: " + e.getMessage());
         }
