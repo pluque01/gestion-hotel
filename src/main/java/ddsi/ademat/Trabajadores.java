@@ -2,9 +2,12 @@ package ddsi.ademat;
 
 import java.sql.*;
 import java.util.Scanner;
+import java.time.LocalDate;
 
 public class Trabajadores {
     public static void crearTablas(Connection conn) {
+        
+        // Creamos la tabla Trabajadores
         try {
             Statement stmt = conn.createStatement();
             GestionHotel.borrarTabla(conn, "Trabajadores");
@@ -17,15 +20,45 @@ public class Trabajadores {
                     + "email VARCHAR(50) NOT NULL,"
                     + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
                     + "nomina DECIMAL(10, 2) NOT NULL CHECK (nomina >= 0),"
+                    + "fecha_contratacion DATE DEFAULT SYSDATE,"
+                    + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
                     + "PRIMARY KEY (dni)"
                     + ")");
 
-            // Insertar dos trabajadores de ejemplo
+            // Insertamos dos trabajadores de ejemplo
             stmt.executeUpdate(
                     "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00)");
             stmt.executeUpdate(
                     "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
             stmt.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Creamos el disparador
+        try {
+            Statement stmt = conn.createStatement();
+            String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
+                    + "BEFORE INSERT OR UPDATE ON Trabajadores "
+                    + "FOR EACH ROW "
+                    + "DECLARE "
+                    + "    salario_minimo CONSTANT NUMBER := 1134; "
+                    + "    fecha_actual DATE := SYSDATE; "
+                    + "    fecha_ultimo_aumento DATE; "
+                    + "BEGIN "
+                    + "    IF :NEW.nomina < salario_minimo THEN "
+                    + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
+                    + "    END IF; "
+                    + "    IF UPDATING AND MONTHS_BETWEEN(fecha_actual, fecha_ultimo_aumento) > 24 THEN "
+                    + "        raise_application_error(-20602, 'El trabajador no puede estar más de dos años sin recibir un aumento de sueldo'); "
+                    + "    END IF; "
+                    + "END;";
+
+            // Ejecutar el código del disparador
+            stmt = conn.createStatement();
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'trg_verificar_sueldo' creado correctamente.");
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -209,7 +242,8 @@ public class Trabajadores {
             if (!nominaStr.isEmpty()) {
                 if (!first)
                     sql.append(", ");
-                sql.append("nomina = ?");
+                sql.append("nomina = ?, fecha_ultimo_aumento = ?");
+                first = false;
             }
 
             sql.append(" WHERE dni = ?");
@@ -228,8 +262,10 @@ public class Trabajadores {
                     pstmt.setString(index++, email);
                 if (!puesto.isEmpty())
                     pstmt.setString(index++, puesto);
-                if (!nominaStr.isEmpty())
+                if (!nominaStr.isEmpty()) {
                     pstmt.setDouble(index++, Double.parseDouble(nominaStr));
+                    pstmt.setDate(index++, Date.valueOf(LocalDate.now()));
+                }
                 pstmt.setString(index, dni);
 
                 int affectedRows = pstmt.executeUpdate();
@@ -263,6 +299,8 @@ public class Trabajadores {
                     System.out.println("Email: " + rs.getString("email"));
                     System.out.println("Puesto: " + rs.getString("puesto"));
                     System.out.println("Nómina: " + rs.getDouble("nomina"));
+                    System.out.println("Fecha de contratación: " + rs.getDate("fecha_contratacion"));
+                    System.out.println("Fecha del último aumento: " + rs.getDate("fecha_ultimo_aumento"));
                 } else {
                     System.out.println("No se encontró ningún trabajador con el DNI proporcionado.");
                 }
