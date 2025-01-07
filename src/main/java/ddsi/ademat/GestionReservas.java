@@ -2,6 +2,9 @@ package ddsi.ademat;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class GestionReservas {
@@ -111,6 +114,18 @@ public class GestionReservas {
         }
     }
 
+    public static boolean esFechaAnterior(String fecha1, String fecha2) {
+        try {
+            LocalDate date1 = LocalDate.parse(fecha1);
+            LocalDate date2 = LocalDate.parse(fecha2);
+
+            return date1.isBefore(date2);
+        } catch (DateTimeParseException e) {
+            System.out.println("Error: Una o ambas fechas tienen un formato incorrecto. Use el formato YYYY-MM-DD.");
+            return false;
+        }
+    }
+
     public static void bucleInteractivo(Connection conn) {
         Scanner scanner = new Scanner(System.in);
         boolean salir = false;
@@ -177,6 +192,15 @@ public class GestionReservas {
             System.out.print("Introduce la fecha final de la estancia (YYYY-MM-DD): ");
             String fechaFinal = scanner.nextLine();
 
+            if (!esFechaAnterior(fechaInicio, fechaFinal)) {
+                System.out.println("La fecha de inicio debe ser anterior a la fecha final");
+                return;
+            }
+
+            // Convertir las fechas ingresadas por el usuario a java.sql.Date
+            java.sql.Date sqlFechaInicio = java.sql.Date.valueOf(fechaInicio);
+            java.sql.Date sqlFechaFinal = java.sql.Date.valueOf(fechaFinal);
+
             // Pedir el tipo de habitación
             System.out.print("Introduce el tipo de habitación (individual, doble, suite): ");
             String tipoHabitacion = scanner.nextLine();
@@ -185,14 +209,14 @@ public class GestionReservas {
             String checkDisponibilidadSQL = "SELECT id FROM Habitacion WHERE tipo = ? AND id NOT IN (" +
                     "SELECT habitacion FROM Reserva WHERE (fechaInicio BETWEEN ? AND ? " +
                     "OR fechaFinal BETWEEN ? AND ?) AND habitacion IN (" +
-                    "SELECT id FROM Habitacion WHERE tipo = ?)) LIMIT 1";
+                    "SELECT id FROM Habitacion WHERE tipo = ?)) AND ROWNUM = 1";
             int habitacionId = -1;
             try (PreparedStatement stmt = conn.prepareStatement(checkDisponibilidadSQL)) {
                 stmt.setString(1, tipoHabitacion);
-                stmt.setString(2, fechaInicio);
-                stmt.setString(3, fechaFinal);
-                stmt.setString(4, fechaInicio);
-                stmt.setString(5, fechaFinal);
+                stmt.setDate(2, sqlFechaInicio);
+                stmt.setDate(3, sqlFechaFinal);
+                stmt.setDate(4, sqlFechaInicio);
+                stmt.setDate(5, sqlFechaFinal);
                 stmt.setString(6, tipoHabitacion);
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
@@ -224,13 +248,12 @@ public class GestionReservas {
             double costoTotal = precioPorNoche * dias;
 
             // Insertar la reserva en la base de datos
-            String insertarReservaSQL = "INSERT INTO Reserva (fechaInicio, fechaFinal, dni, habitacion, costoTotal) VALUES (?, ?, ?, ?, ?)";
+            String insertarReservaSQL = "INSERT INTO Reserva (fechaInicio, fechaFinal, dni, habitacion) VALUES (?, ?, ?, ?)";
             try (PreparedStatement stmt = conn.prepareStatement(insertarReservaSQL)) {
-                stmt.setString(1, fechaInicio);
-                stmt.setString(2, fechaFinal);
+                stmt.setDate(1, sqlFechaInicio);
+                stmt.setDate(2, sqlFechaFinal);
                 stmt.setString(3, dni);
                 stmt.setInt(4, habitacionId);
-                stmt.setDouble(5, costoTotal);
                 stmt.executeUpdate();
             }
 
@@ -246,9 +269,16 @@ public class GestionReservas {
     public static void cancelarReserva(Connection conn, Scanner scanner) {
         try {
             // Pedir el ID de la reserva a cancelar
-            System.out.print("Introduce el ID de la reserva a cancelar: ");
-            int idReserva = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+            int idReserva;
+            try {
+                System.out.print("Introduce el ID de la reserva a cancelar: ");
+                idReserva = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
+            } catch (InputMismatchException e) {
+                System.out.println("Por favor, introduce un número entero válido.");
+                scanner.nextLine(); // Limpiar la entrada no válida del scanner
+                return;
+            }
 
             // Verificar si la reserva existe en la tabla Reserva
             String checkReservaSQL = "SELECT COUNT(*) FROM Reserva WHERE id = ?";
@@ -294,60 +324,85 @@ public class GestionReservas {
     public static void modificarReserva(Connection conn, Scanner scanner) {
         try {
             // Pedir el ID de la reserva a modificar
-            System.out.print("Introduce el ID de la reserva a modificar: ");
-            int idReserva = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+            int idReserva;
+            try {
+                System.out.print("Introduce el ID de la reserva a cancelar: ");
+                idReserva = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
+            } catch (InputMismatchException e) {
+                System.out.println("Por favor, introduce un número entero válido.");
+                scanner.nextLine(); // Limpiar la entrada no válida del scanner
+                return;
+            }
 
-            // Verificar si la reserva existe en la tabla Reserva
-            String checkReservaSQL = "SELECT COUNT(*) FROM Reserva WHERE id = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(checkReservaSQL)) {
+            // Verificar si la reserva existe y obtener la habitación actual
+            String getReservaSQL = "SELECT habitacion FROM Reserva WHERE id = ?";
+            int habitacionActual = -1;
+            try (PreparedStatement stmt = conn.prepareStatement(getReservaSQL)) {
                 stmt.setInt(1, idReserva);
                 ResultSet rs = stmt.executeQuery();
-                if (rs.next() && rs.getInt(1) == 0) {
+                if (rs.next()) {
+                    habitacionActual = rs.getInt("habitacion");
+                } else {
                     System.out.println("La reserva con ID " + idReserva + " no existe.");
                     return;
                 }
             }
 
-            // Pedir las nuevas fechas de inicio y final, o el nuevo tipo de habitación
+            // Pedir las nuevas fechas de inicio y final, y el nuevo tipo de habitación
             System.out.print("Introduce la nueva fecha de inicio (YYYY-MM-DD): ");
             String nuevaFechaInicio = scanner.nextLine();
             System.out.print("Introduce la nueva fecha final (YYYY-MM-DD): ");
             String nuevaFechaFinal = scanner.nextLine();
 
-            // Pedir el nuevo tipo de habitación (opcional)
+            if (!esFechaAnterior(nuevaFechaInicio, nuevaFechaFinal)) {
+                System.out.println("La fecha de inicio debe ser anteriora la fecha final");
+                return;
+            }
+
+            java.sql.Date sqlNuevaFechaInicio = java.sql.Date.valueOf(nuevaFechaInicio);
+            java.sql.Date sqlNuevaFechaFinal = java.sql.Date.valueOf(nuevaFechaFinal);
+
             System.out.print("Introduce el nuevo tipo de habitación (individual, doble, suite): ");
             String nuevoTipoHabitacion = scanner.nextLine();
 
-            // Verificar disponibilidad de habitaciones del nuevo tipo para las nuevas
-            // fechas
-            String checkDisponibilidadSQL = "SELECT COUNT(*) FROM Habitacion h "
-                    + "WHERE h.tipo = ? AND h.id NOT IN ("
-                    + "SELECT r.habitacion FROM Reserva r "
-                    + "WHERE r.fechaInicio < ? AND r.fechaFinal > ?)";
+            // Verificar disponibilidad de habitaciones excluyendo la habitación actual
+            String checkDisponibilidadSQL = "SELECT id FROM Habitacion WHERE tipo = ? AND id NOT IN (" +
+                    "SELECT habitacion FROM Reserva WHERE (fechaInicio BETWEEN ? AND ? " +
+                    "OR fechaFinal BETWEEN ? AND ?) AND habitacion IN (" +
+                    "SELECT id FROM Habitacion WHERE tipo = ?)) OR id = ? AND ROWNUM = 1";
 
+            int habitacionId = -1;
             try (PreparedStatement stmt = conn.prepareStatement(checkDisponibilidadSQL)) {
                 stmt.setString(1, nuevoTipoHabitacion);
-                stmt.setString(2, nuevaFechaFinal);
-                stmt.setString(3, nuevaFechaInicio);
+                stmt.setDate(2, sqlNuevaFechaInicio);
+                stmt.setDate(3, sqlNuevaFechaFinal);
+                stmt.setDate(4, sqlNuevaFechaInicio);
+                stmt.setDate(5, sqlNuevaFechaFinal);
+                stmt.setString(6, nuevoTipoHabitacion);
+                stmt.setInt(7, habitacionActual);
                 ResultSet rs = stmt.executeQuery();
-                if (rs.next() && rs.getInt(1) == 0) {
-                    System.out.println(
-                            "No hay habitaciones disponibles del tipo " + nuevoTipoHabitacion + " para esas fechas.");
-                    return;
+                if (rs.next()) {
+                    habitacionId = rs.getInt(1);
                 }
             }
 
-            // Actualizar la reserva en la base de datos con las nuevas fechas o el nuevo
-            // tipo de habitación
-            String updateReservaSQL = "UPDATE Reserva SET fechaInicio = ?, fechaFinal = ?, habitacion = ("
-                    + "SELECT id FROM Habitacion WHERE tipo = ? LIMIT 1) "
-                    + "WHERE id = ?";
+            if (habitacionId == -1) {
+                System.out.println("No hay habitaciones disponibles para las fechas y tipo seleccionados.");
+                return;
+            }
+
+            // Actualizar la reserva con la nueva información
+            String updateReservaSQL = """
+                        UPDATE Reserva
+                        SET fechaInicio = ?, fechaFinal = ?, habitacion = ?
+                        WHERE id = ?
+                    """;
 
             try (PreparedStatement stmt = conn.prepareStatement(updateReservaSQL)) {
-                stmt.setString(1, nuevaFechaInicio);
-                stmt.setString(2, nuevaFechaFinal);
-                stmt.setString(3, nuevoTipoHabitacion);
+                stmt.setDate(1, sqlNuevaFechaInicio);
+                stmt.setDate(2, sqlNuevaFechaFinal);
+                stmt.setInt(3, habitacionId); // Habitación actualizada
                 stmt.setInt(4, idReserva);
                 stmt.executeUpdate();
             }
@@ -362,37 +417,40 @@ public class GestionReservas {
 
     // Función para gestionar suplementos
     public static void gestionarSuplementos(Connection conn, Scanner scanner) {
-        try {
-            // Menú interactivo para gestionar los suplementos
-            System.out.println("Gestión de Suplementos");
-            System.out.println("1. Mostrar suplementos disponibles");
-            System.out.println("2. Añadir suplemento a reserva");
-            System.out.println("3. Eliminar suplemento de reserva");
-            System.out.println("0. Volver al menú principal");
+        int opcion = -1;
+        while (opcion != 0) {
+            try {
+                // Menú interactivo para gestionar los suplementos
+                System.out.println("\n--- Gestión de Suplementos ---");
+                System.out.println("1. Mostrar suplementos disponibles");
+                System.out.println("2. Añadir suplemento a reserva");
+                System.out.println("3. Eliminar suplemento de reserva");
+                System.out.println("0. Volver al menú de reservas");
 
-            System.out.print("Elige una opción: ");
-            int opcion = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+                System.out.print("Elige una opción: ");
+                opcion = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
 
-            switch (opcion) {
-                case 1:
-                    mostrarSuplementosDisponibles(conn);
-                    break;
-                case 2:
-                    anadirSuplementoReserva(conn, scanner);
-                    break;
-                case 3:
-                    eliminarSuplementoReserva(conn, scanner);
-                    break;
-                case 0:
-                    return; // Volver al menú principal
-                default:
-                    System.out.println("Opción inválida.");
-                    break;
+                switch (opcion) {
+                    case 1:
+                        mostrarSuplementosDisponibles(conn);
+                        break;
+                    case 2:
+                        anadirSuplementoReserva(conn, scanner);
+                        break;
+                    case 3:
+                        eliminarSuplementoReserva(conn, scanner);
+                        break;
+                    case 0:
+                        return; // Volver al menú principal
+                    default:
+                        System.out.println("Opción inválida.");
+                        break;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Error al gestionar los suplementos: " + e.getMessage());
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Error al gestionar los suplementos: " + e.getMessage());
         }
     }
 
@@ -419,9 +477,16 @@ public class GestionReservas {
     private static void anadirSuplementoReserva(Connection conn, Scanner scanner) {
         try {
             // Pedir el ID de la reserva y el suplemento a añadir
-            System.out.print("Introduce el ID de la reserva: ");
-            int idReserva = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+            int idReserva;
+            try {
+                System.out.print("Introduce el ID de la reserva: ");
+                idReserva = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
+            } catch (InputMismatchException e) {
+                System.out.println("Por favor, introduce un número entero válido.");
+                scanner.nextLine(); // Limpiar la entrada no válida del scanner
+                return;
+            }
 
             System.out.print("Introduce el nombre del suplemento: ");
             String nombreSuplemento = scanner.nextLine();
@@ -447,6 +512,18 @@ public class GestionReservas {
                     if (cantidadDisponible <= 0) {
                         System.out.println("No hay cantidad suficiente del suplemento " + nombreSuplemento + ".");
                         return;
+                    }
+
+                    // Verificar si el suplemento ya está asociado con la reserva
+                    String checkExistenciaSQL = "SELECT COUNT(*) FROM Incorpora WHERE idReserva = ? AND nombreSuplemento = ?";
+                    try (PreparedStatement stmtCheck = conn.prepareStatement(checkExistenciaSQL)) {
+                        stmtCheck.setInt(1, idReserva);
+                        stmtCheck.setString(2, nombreSuplemento);
+                        ResultSet rsCheck = stmtCheck.executeQuery();
+                        if (rsCheck.next() && rsCheck.getInt(1) > 0) {
+                            System.out.println("El suplemento " + nombreSuplemento + " ya está añadido a la reserva.");
+                            return;
+                        }
                     }
 
                     // Si hay suficiente cantidad, añadir el suplemento a la reserva
@@ -480,9 +557,16 @@ public class GestionReservas {
     private static void eliminarSuplementoReserva(Connection conn, Scanner scanner) {
         try {
             // Pedir el ID de la reserva y el suplemento a eliminar
-            System.out.print("Introduce el ID de la reserva: ");
-            int idReserva = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+            int idReserva;
+            try {
+                System.out.print("Introduce el ID de la reserva: ");
+                idReserva = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
+            } catch (InputMismatchException e) {
+                System.out.println("Por favor, introduce un número entero válido.");
+                scanner.nextLine(); // Limpiar la entrada no válida del scanner
+                return;
+            }
 
             System.out.print("Introduce el nombre del suplemento: ");
             String nombreSuplemento = scanner.nextLine();
@@ -532,15 +616,25 @@ public class GestionReservas {
     public static void mostrarListadoReservas(Connection conn) {
         System.out.println("Listado de Reservas");
 
-        String sql = "SELECT r.id, r.fechaInicio, r.fechaFinal, r.dni, r.habitacion, h.tipo, h.precioPorNoche, "
-                + "(DATEDIFF(r.fechaFinal, r.fechaInicio) * h.precioPorNoche) AS precioFinal "
-                + "FROM Reserva r "
-                + "JOIN Habitacion h ON r.habitacion = h.id "
-                + "ORDER BY r.fechaInicio";
+        String sql = """
+                SELECT r.id, r.fechaInicio, r.fechaFinal, r.dni, r.habitacion, h.tipo, h.precioPorNoche,
+                       ((r.fechaFinal - r.fechaInicio) * h.precioPorNoche) AS precioFinal,
+                       s.nombre AS suplemento, s.precio AS precioSuplemento
+                FROM Reserva r
+                JOIN Habitacion h ON r.habitacion = h.id
+                LEFT JOIN Incorpora i ON r.id = i.idReserva
+                LEFT JOIN Suplemento s ON i.nombreSuplemento = s.nombre
+                ORDER BY r.fechaInicio, s.nombre
+                """;
 
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-            System.out.println(
-                    "ID Reserva | Fecha Inicio | Fecha Final | DNI Cliente | Habitación | Tipo Habitación | Precio Final");
+            // Formato para alinear los títulos de las columnas
+            System.out.println(String.format("%-12s %-12s %-12s %-12s %-12s %-18s %-18s",
+                    "ID Reserva", "Fecha Inicio", "Fecha Final", "DNI Cliente",
+                    "Habitación", "Tipo Habitación", "Precio Habitacion"));
+
+            int currentReservaId = -1;
+            StringBuilder suplementosBuilder = new StringBuilder();
 
             while (rs.next()) {
                 int idReserva = rs.getInt("id");
@@ -549,13 +643,36 @@ public class GestionReservas {
                 String dniCliente = rs.getString("dni");
                 int numHabitacion = rs.getInt("habitacion");
                 String tipoHabitacion = rs.getString("tipo");
-                // BigDecimal precioPorNoche = rs.getBigDecimal("precioPorNoche");
                 BigDecimal precioFinal = rs.getBigDecimal("precioFinal");
+                String suplemento = rs.getString("suplemento");
+                BigDecimal precioSuplemento = rs.getBigDecimal("precioSuplemento");
 
-                System.out.println(idReserva + " | " + fechaInicio + " | " + fechaFinal + " | " + dniCliente + " | "
-                        + numHabitacion + " | " + tipoHabitacion + " | " + precioFinal);
+                // Si cambiamos de reserva, imprimimos la anterior con sus suplementos
+                // acumulados
+                if (idReserva != currentReservaId) {
+                    if (currentReservaId != -1) {
+                        System.out.println(suplementosBuilder);
+                    }
+                    currentReservaId = idReserva;
+                    suplementosBuilder = new StringBuilder();
+
+                    // Alineamos los datos de la reserva
+                    System.out.println(String.format("%-12d %-12s %-12s %-12s %-12d %-18s %-18s",
+                            idReserva, fechaInicio, fechaFinal, dniCliente, numHabitacion, tipoHabitacion,
+                            precioFinal));
+                }
+
+                // Acumulamos los suplementos para la reserva actual
+                if (suplemento != null) {
+                    suplementosBuilder.append("    - ").append(suplemento)
+                            .append(" (").append(precioSuplemento).append(")\n");
+                }
             }
 
+            // Imprimir los suplementos de la última reserva procesada
+            if (suplementosBuilder.length() > 0) {
+                System.out.println(suplementosBuilder);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             System.out.println("Error al mostrar el listado de reservas: " + e.getMessage());
