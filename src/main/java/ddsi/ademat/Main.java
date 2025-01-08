@@ -72,7 +72,7 @@ public class Main {
     public static void borrarYCrearTablas(Connection conn) {
         Trabajadores.borrarYCrearTablas(conn);
         Facturacion.borrarYCrearTablas(conn);
-        GestionClientes.borrarYCrearTablas(conn);
+        GestionClientes.crearTablas(conn);
         GestionSuministros.borrarYCrearTablas(conn);
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }
