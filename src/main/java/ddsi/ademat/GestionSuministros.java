@@ -73,30 +73,25 @@ public class GestionSuministros {
                     ")";
             stmt.executeUpdate(sqlTabla);
 
+            String sqlTrigger = "CREATE OR REPLACE TRIGGER check_duplicate_suministro " +
+                    "BEFORE INSERT ON suministro " +
+                    "FOR EACH ROW " +
+                    "DECLARE " +
+                    "v_count NUMBER; " +
+                    "BEGIN " +
+                    "SELECT COUNT(*) INTO v_count " +
+                    "FROM suministro " +
+                    "WHERE nombre = :NEW.nombre AND proveedor = :NEW.proveedor; " +
+                    "IF v_count > 0 THEN " +
+                    "RAISE_APPLICATION_ERROR(-20001, 'Error: Producto duplicado con el mismo nombre y proveedor.'); " +
+                    "END IF; " +
+                    "END;";
+            stmt.executeUpdate(sqlTrigger);
+
+            System.out.println("Tabla 'suministro' y disparador creados correctamente.");
+
         } catch (SQLException e) {
             System.out.println("Error al verificar o crear la tabla 'suministro': " + e.getMessage());
-        }
-
-        String sql = "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "toallas");
-            pstmt.setInt(2, 3);
-            pstmt.setString(3, "fernando alonso");
-            pstmt.setDate(4, Date.valueOf("2025-01-04"));
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("Error al añadir el suministro: " + e.getMessage());
-        }
-
-        sql = "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "cigarros");
-            pstmt.setInt(2, 9999);
-            pstmt.setString(3, "el fary");
-            pstmt.setDate(4, Date.valueOf("2027-01-01"));
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("Error al añadir el suministro: " + e.getMessage());
         }
     }
 
@@ -198,9 +193,7 @@ public class GestionSuministros {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             System.out.println("\n--- Lista de Suministros ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: "
-                        + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor")
-                        + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: " + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor") + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar los suministros: " + e.getMessage());
