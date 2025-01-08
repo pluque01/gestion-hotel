@@ -77,7 +77,7 @@ public class GestionClientes {
                     + "FOR EACH ROW "
                     + "BEGIN "
                     + "    IF :NEW.rango NOT IN ('Inicial', 'Avanzado', 'VIP', 'Platino') THEN "
-                    + "        raise_application_error(-20681, 'El rango debe ser uno de los siguientes valores: Inicial, Avanzado, VIP, Platino'); "
+                    + "        raise_application_error(-20601, 'El rango debe ser uno de los siguientes valores: Inicial, Avanzado, VIP, Platino'); "
                     + "    END IF; "
                     + "END;";
 
@@ -238,11 +238,11 @@ public class GestionClientes {
             System.out.println("\nCliente dado de alta correctamente. \n");
             conn.commit();
         } catch (SQLException e) {
-            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
+            e.printStackTrace();
             try {
                 conn.rollback();
             } catch (SQLException ex) {
-                System.out.println("\nERROR: al añadir el cliente" + ex.getMessage());
+                ex.printStackTrace();
             }
         }
     }
@@ -470,7 +470,7 @@ public class GestionClientes {
         try {
             stmt.executeUpdate(sql);
         } catch (SQLException e) {
-            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
+            e.printStackTrace();
         }
 
         try {
