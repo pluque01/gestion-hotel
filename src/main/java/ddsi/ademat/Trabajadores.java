@@ -38,12 +38,6 @@ public class Trabajadores {
 
         // Comprobamos si el disparador ya existe
         try {
-            DatabaseMetaData dbMetaData = conn.getMetaData();
-            ResultSet rs = dbMetaData.getTables(null, null, "TRG_VERIFICAR_SUELDO", new String[]{"TRIGGER"});
-            if (rs.next()) {
-            System.out.println("El disparador 'trg_verificar_sueldo' ya existe.");
-            } else {
-            // Si no existe creamos el disparador
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
                 + "BEFORE INSERT OR UPDATE ON Trabajadores "
@@ -63,10 +57,8 @@ public class Trabajadores {
 
             // Ejecutar el código del disparador
             stmt.execute(triggerSQL);
-            System.out.println("Disparador 'trg_verificar_sueldo' creado correctamente.");
+            System.out.println("Disparador 'trg_verificar_sueldo' creado o reemplazado correctamente.");
             stmt.close();
-            }
-            rs.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
