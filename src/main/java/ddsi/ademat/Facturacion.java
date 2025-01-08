@@ -174,6 +174,10 @@ public class Facturacion {
             }
             System.out.print("\nIndique el concepto de la reserva: ");
             String concepto = scanner.nextLine();
+            if (concepto.isEmpty()) {
+                System.out.println("El concepto no puede estar vacío.");
+                return;
+            }
             String sql = "INSERT INTO Factura (concepto, fecha, codReserva) VALUES (?, SYSDATE, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql, new String[] { "id" })) {
                 pstmt.setString(1, concepto);
@@ -241,7 +245,7 @@ public class Facturacion {
             stmt.executeUpdate("UPDATE Factura SET reembolsada = 1 WHERE id = '" + codFactura + "'");
             System.out.println("Factura reembolsada con éxito.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            e.getMessage();
         }
     }
 }
