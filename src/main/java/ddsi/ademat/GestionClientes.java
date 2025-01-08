@@ -3,6 +3,8 @@ package ddsi.ademat;
 import java.sql.*;
 import java.util.Scanner;
 
+import oracle.jdbc.proxy.annotation.Pre;
+
 public class GestionClientes {
 
     /*
@@ -32,6 +34,17 @@ public class GestionClientes {
         return esUnica;
     }
 
+    private static final String[] VALID_RANGOS = {"Inicial", "Avanzado", "VIP", "Platino"};
+
+    private static boolean esRangoValido(String rango) {
+        for (String validRango : VALID_RANGOS) {
+            if (validRango.equals(rango)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void crearTablas(Connection conn) {
         try {
             Statement stmt = conn.createStatement();
@@ -43,7 +56,7 @@ public class GestionClientes {
                     + "domicilio VARCHAR(60),"
                     + "email VARCHAR(30) CONSTRAINT email_clave_candidata UNIQUE NOT NULL,"
                     + "puntos INTEGER,"
-                    + "rango VARCHAR(20) CONSTRAINT rango_chk CHECK (rango IN ('Inicial', 'Avanzado', 'VIP', 'Platino')),"
+                    + "rango VARCHAR(20) CONSTRAINT),"
                     + "tarjeta VARCHAR(20),"
                     + "PRIMARY KEY (dni)"
                     + ")");
@@ -55,11 +68,30 @@ public class GestionClientes {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        // Create trigger to validate rango
+        try {
+            Statement stmt = conn.createStatement();
+            String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_rango "
+                    + "BEFORE INSERT OR UPDATE ON Cliente "
+                    + "FOR EACH ROW "
+                    + "BEGIN "
+                    + "    IF :NEW.rango NOT IN ('Inicial', 'Avanzado', 'VIP', 'Platino') THEN "
+                    + "        raise_application_error(-20681, 'El rango debe ser uno de los siguientes valores: Inicial, Avanzado, VIP, Platino'); "
+                    + "    END IF; "
+                    + "END;";
+
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'trg_verificar_rango' creado o reemplazado correctamente.");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void mostrarTablas(Connection conn) {
         try {
-            System.out.println("Contenido de Clientes:");
+            System.out.println("---- Contenido de Clientes ----");
             GestionHotel.mostrarTabla(conn, "Cliente");
         } catch (SQLException e) {
             System.out.println("Error al mostrar las tablas: " + e.getMessage());
@@ -81,22 +113,23 @@ public class GestionClientes {
 
             System.out.print("Elige una opción: ");
             int choice = scanner.nextInt();
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
-                    darAltaCliente(conn);
+                    darAltaCliente(conn, scanner);
                     break;
                 case 2:
-                    darBajaCliente(conn);
+                    darBajaCliente(conn, scanner);
                     break;
                 case 3:
-                    consultarCliente(conn);
+                    consultarCliente(conn, scanner);
                     break;
                 case 4:
-                    modificarCliente(conn);
+                    modificarCliente(conn, scanner);
                     break;
                 case 5:
-                    consultarRangoCliente(conn);
+                    consultarRangoCliente(conn, scanner);
                     break;
                 case 0:
                     terminar = true;
@@ -106,21 +139,18 @@ public class GestionClientes {
                     System.out.println("Opción inválida.");
             }
         }
-
-        scanner.close();
     }
 
-    public static void darAltaCliente(Connection conn) {
+    public static void darAltaCliente(Connection conn, Scanner scanner) {
         String sql;
         Statement stmt = null;
         try {
             stmt = conn.createStatement();
+            conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
-
-        Scanner scanner = new Scanner(System.in);
 
         System.out.println("\nPor favor indique el NOMBRE del Cliente: \n");
         String nombreCliente = scanner.nextLine();
@@ -150,6 +180,21 @@ public class GestionClientes {
             dni = scanner.nextLine();
         }
 
+        try {
+            PreparedStatement checkClienteStmt = conn.prepareStatement(
+                "SELECT COUNT(*) AS cuenta FROM Cliente WHERE dni = ?");
+            checkClienteStmt.setString(1, dni);
+            ResultSet checkClienteRs = checkClienteStmt.executeQuery();
+
+            if (checkClienteRs.next() && checkClienteRs.getInt("cuenta") != 0) {
+                System.out.println("El DNI ya existe en la Base de Datos.");
+                return;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return;
+        }
+
         System.out.println("\nPor favor indique el DOMICILIO del cliente: \n");
         String domicilio = scanner.nextLine();
         while (domicilio.length() > 60) {
@@ -159,8 +204,8 @@ public class GestionClientes {
 
         System.out.println("\nPor favor indique el CORREO del cliente: \n");
         String correo = scanner.nextLine();
-        while (correo.length() > 20 || !esUnica(stmt, correo)) {
-            System.out.println("\nCorreo no válido o ya existente, intentelo de nuevo\n");
+        while (correo.length() > 30 || correo.isEmpty() || !esUnica(stmt, correo)) {
+            System.out.println("\nCorreo no válido, ya existente o vacío, intentelo de nuevo\n");
             correo = scanner.nextLine();
         }
 
@@ -171,12 +216,12 @@ public class GestionClientes {
             puntos = scanner.nextLine();
         }
 
-        System.out.println("\nPor favor indique el RANGO del cliente: \n");
+        System.out.println("\nPor favor indique el RANGO del cliente ('Inicial', 'Avanzado', 'VIP', 'Platino'): \n");
         String rango = scanner.nextLine();
-        while (rango.length() > 20) {
-            System.out.println("\nRango no válido, intentelo de nuevo\n");
-            rango = scanner.nextLine();
-        }
+        // while (!esRangoValido(rango)) {
+        //     System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
+        //     rango = scanner.nextLine();
+        // }
 
         System.out.println("\nPor favor indique la TARJETA del cliente: \n");
         String tarjeta = scanner.nextLine();
@@ -190,32 +235,31 @@ public class GestionClientes {
                 + correo + "','" + puntos + "','" + rango + "','" + tarjeta + "')";
         try {
             stmt.executeUpdate(sql);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        try {
+            System.out.println("\nCliente dado de alta correctamente. \n");
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("\nERROR: al añadir el cliente" + ex.getMessage());
+            }
         }
-
-        scanner.close();
     }
 
-    public static void darBajaCliente(Connection conn) {
+    public static void darBajaCliente(Connection conn, Scanner scanner) {
 
         String sql;
         Statement stmt = null;
         try {
             stmt = conn.createStatement();
+            conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
         System.out.println("\nPor favor indique el DNI del cliente a eliminar: \n");
         String DNI;
-        Scanner scanner = new Scanner(System.in);
         DNI = scanner.nextLine();
         while (DNI.length() > 20) {
             System.out.println("\nDNI no válido, intentelo de nuevo\n");
@@ -231,6 +275,7 @@ public class GestionClientes {
                 System.out.println("\nBorrando el cliente con DNI:" + rs.getString("DNI") + " " + " \n");
                 sql = "delete from Cliente where DNI='" + DNI + "'";
                 stmt.executeQuery(sql);
+                System.out.println("\nCliente dado de baja correctamente.\n");
             } else {
                 System.out.println("\nNo existe el Cliente\n");
             }
@@ -239,31 +284,40 @@ public class GestionClientes {
         }
 
         try {
+            stmt.executeUpdate(sql);
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        try {
             conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        scanner.close();
     }
 
-    public static void consultarCliente(Connection conn) {
+    public static void consultarCliente(Connection conn, Scanner scanner) {
         String sql;
         Statement stmt = null;
         try {
             stmt = conn.createStatement();
+            conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
         System.out.println("\nPor favor indique el DNI del cliente a consultar: \n");
-        String DNI;
-        Scanner scanDNI = new Scanner(System.in);
-        DNI = scanDNI.nextLine();
+        String DNI = scanner.nextLine();
         while (DNI.length() > 20) {
             System.out.println("\nDNI no válido, intentelo de nuevo\n");
-            Scanner scanDNIEmp = new Scanner(System.in);
-            DNI = scanDNIEmp.nextLine();
+            DNI = scanner.nextLine();
         }
 
         sql = "select * from Cliente where dni='" + DNI + "'";
@@ -272,7 +326,7 @@ public class GestionClientes {
             ResultSet rs = stmt.executeQuery(sql);
             if (rs.next()) {
                 System.out.println("\nNombre: " + rs.getString("nombre") + "\n");
-                System.out.println("\nApellidos: " + rs.getString("npellidos") + "\n");
+                System.out.println("\nApellidos: " + rs.getString("apellidos") + "\n");
                 System.out.println("\nTelefono: " + rs.getString("telefono") + "\n");
                 System.out.println("\nDNI: " + rs.getString("dni") + "\n");
                 System.out.println("\nDomicilio: " + rs.getString("domicilio") + "\n");
@@ -284,7 +338,19 @@ public class GestionClientes {
                 System.out.println("\nNo existe el Cliente\n");
             }
         } catch (Exception e) {
-            System.out.println("\nERROR: El cliente no existe o hay problemas en la conexión\n");
+            System.out.println("ERROR: El cliente no existe o hay problemas en la conexión" + e.getMessage());
+        }
+
+        try {
+            stmt.executeUpdate(sql);
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
 
         try {
@@ -294,22 +360,22 @@ public class GestionClientes {
         }
     }
 
-    public static void modificarCliente(Connection conn) {
+    public static void modificarCliente(Connection conn, Scanner scanner) {
         String sql;
         Statement stmt = null;
         try {
             stmt = conn.createStatement();
+            conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
         System.out.println("\nPor favor indique el DNI del cliente a modificar: \n");
         String DNI;
-        Scanner scanDNI = new Scanner(System.in);
-        DNI = scanDNI.nextLine();
+        DNI = scanner.nextLine();
         while (DNI.length() > 9 || DNI.length() < 1) {
             System.out.println("\nDNI no válido, intentelo de nuevo\n");
-            DNI = scanDNI.nextLine();
+            DNI = scanner.nextLine();
         }
 
         sql = "select * from Cliente where dni='" + DNI + "'";
@@ -335,57 +401,56 @@ public class GestionClientes {
             return;
         }
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("\nPor favor indique el NOMBRE del Cliente, si quiere: \n");
+        System.out.println("\nPor favor indique el NOMBRE del Cliente: \n");
         String nombreCliente = scanner.nextLine();
         if (nombreCliente.length() > 20) {
             System.out.println("\nNombre no válido, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique los APELLIDOS del Cliente, si quiere: \n");
+        System.out.println("\nPor favor indique los APELLIDOS del Cliente: \n");
         String apellidoCliente = scanner.nextLine();
         if (apellidoCliente.length() > 40) {
             System.out.println("\nApellidos no válidos, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique el TELÉFONO del Cliente, si quiere: \n");
+        System.out.println("\nPor favor indique el TELÉFONO del Cliente: \n");
         String telefono = scanner.nextLine();
         if (telefono.length() > 20 || (!esEntero(telefono) && telefono.length() > 1)) {
             System.out.println("\nTelefono no válido, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique el DOMICILIO del cliente, si quiere: \n");
+        System.out.println("\nPor favor indique el DOMICILIO del cliente: \n");
         String domicilio = scanner.nextLine();
         if (domicilio.length() > 60) {
             System.out.println("\nDomicilio no válido, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique el CORREO del cliente, si quiere: \n");
+        System.out.println("\nPor favor indique el CORREO del cliente: \n");
         String correo = scanner.nextLine();
-        if (correo.length() > 20 || (!esUnica(stmt, correo) && correo.length() > 1)) {
-            System.out.println("\nCorreo no válido o ya existente, intentelo de nuevo\n");
+        if (correo.length() > 20 || correo.isEmpty() || (!esUnica(stmt, correo) && correo.length() > 1)) {
+            System.out.println("\nCorreo no válido, ya existente o vacío, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique los PUNTOS del cliente, si quiere: \n");
+        System.out.println("\nPor favor indique los PUNTOS del cliente: \n");
         String puntos = scanner.nextLine();
         if (!esEntero(puntos)) {
             System.out.println("\nPuntos no válidos, intentelo de nuevo\n");
             return;
         }
 
-        System.out.println("\nPor favor indique el RANGO del cliente, si quiere: \n");
+        System.out.println("\nPor favor indique el RANGO del cliente ('Inicial', 'Avanzado', 'VIP', 'Platino'): \n");
         String rango = scanner.nextLine();
-        if (rango.length() > 20) {
-            System.out.println("\nRango no válido, intentelo de nuevo\n");
-            return;
-        }
+        // if (!esRangoValido(rango)) {
+        //     System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
+        //     return;
+        // }
 
-        System.out.println("\nPor favor indique la TARJETA del cliente, si quiere: \n");
+        System.out.println("\nPor favor indique la TARJETA del cliente: \n");
         String tarjeta = scanner.nextLine();
         if (tarjeta.length() > 20 || !esEntero(tarjeta)) {
             System.out.println("\nTarjeta no válida, intentelo de nuevo\n");
@@ -405,33 +470,32 @@ public class GestionClientes {
         try {
             stmt.executeUpdate(sql);
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
         }
 
         try {
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
         }
     }
 
-    public static void consultarRangoCliente(Connection conn) {
+    public static void consultarRangoCliente(Connection conn, Scanner scanner) {
         String sql;
         Statement stmt = null;
         try {
             stmt = conn.createStatement();
+            conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return;
         }
         System.out.println("\nPor favor indique el DNI del cliente a consultar: \n");
         String DNI;
-        Scanner scanDNI = new Scanner(System.in);
-        DNI = scanDNI.nextLine();
+        DNI = scanner.nextLine();
         while (DNI.length() > 20) {
             System.out.println("\nDNI no válido, intentelo de nuevo\n");
-            Scanner scanDNIEmp = new Scanner(System.in);
-            DNI = scanDNIEmp.nextLine();
+            DNI = scanner.nextLine();
         }
 
         sql = "select * from Cliente where dni='" + DNI + "'";
@@ -445,6 +509,18 @@ public class GestionClientes {
             }
         } catch (Exception e) {
             System.out.println("\nERROR: El cliente no existe o hay problemas en la conexión\n");
+        }
+
+        try {
+            stmt.executeUpdate(sql);
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
 
         try {
@@ -476,37 +552,3 @@ public class GestionClientes {
 // Gonzalez','649837468','28846380R','','Arabial 23','manuelfg@hotmail.com', 0,
 // 'Inicial')";
 // stmt.executeQuery(sql);
-
-// public void darAltaCliente(String DNI, String Nombre, String Apellidos,
-// String Telefono, String Correo, int puntosCliente, String rango) {
-// Cliente c = new Cliente(DNI, Nombre, Apellidos, Telefono, Correo,
-// puntosCliente, rango);
-// c.save();
-// }
-
-// public void darBajaCliente(String DNI) {
-// Cliente c = Cliente.find(DNI);
-// c.delete();
-// }
-
-// public void consultarCliente(String DNI) {
-// Cliente c = Cliente.find(DNI);
-// System.out.println(c);
-// }
-
-// public void modificarCliente(String DNI, String Nombre, String Apellidos,
-// String Telefono, String Correo, int puntosCliente, String rango) {
-// Cliente c = Cliente.find(DNI);
-// c.setNombre(Nombre);
-// c.setApellidos(Apellidos);
-// c.setTelefono(Telefono);
-// c.setCorreo(Correo);
-// c.setPuntosCliente(puntosCliente);
-// c.setRango(rango);
-// c.save();
-// }
-
-// public void consultarRangoCliente(String DNI) {
-// Cliente c = Cliente.find(DNI);
-// System.out.println(c.getRango());
-// }
