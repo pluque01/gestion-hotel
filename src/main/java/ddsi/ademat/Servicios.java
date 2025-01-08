@@ -75,7 +75,7 @@ public class Servicios {
             }
 
             String sql = "BEGIN " +
-                    "INSERT INTO Actividad (id, nombre, precio, horario, aforo) " +
+                    "INSERT INTO Actividad (nombre, precio, horario, aforo) " +
                     "VALUES (?, ?, TO_DATE(?, 'DD/MM/YYYY HH24:MI'), ?) " +
                     "RETURNING id INTO ?; " +
                     "END;";
@@ -244,9 +244,7 @@ public class Servicios {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: "
-                        + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: "
-                        + rs.getInt("aforo"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar actividades filtradas: " + e.getMessage());
@@ -268,7 +266,7 @@ public class Servicios {
              * "         RAISE; " +
              * "      END IF; " +
              * "END;");
-             * 
+             *
              * // Eliminar tabla Actividad si existe
              * stmt.executeUpdate(
              * "BEGIN " +
