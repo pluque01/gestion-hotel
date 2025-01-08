@@ -298,8 +298,24 @@ public class Servicios {
                     + "FOREIGN KEY (id) REFERENCES Actividad(id)"
                     + ")");
 
-            // stmt.executeUpdate("CREATE SEQUENCE actividad_seq START WITH 1 INCREMENT BY
-            // 1");
+            // Crear el disparador
+            String triggerSQL = """
+            CREATE OR REPLACE TRIGGER trg_validar_actividad
+            BEFORE INSERT ON Actividad
+            FOR EACH ROW
+            BEGIN
+                IF :NEW.aforo <= 0 THEN
+                    RAISE_APPLICATION_ERROR(-20001, 'El aforo debe ser mayor que 0.');
+                END IF;
+
+                IF :NEW.horario < SYSDATE THEN
+                    RAISE_APPLICATION_ERROR(-20002, 'La fecha debe ser igual o posterior a la actual.');
+                END IF;
+            END;
+        """;
+
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'trg_validar_actividad' creado con éxito.");
 
             // Valores de prueba
             stmt.executeUpdate(
