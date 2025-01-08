@@ -36,7 +36,7 @@ public class Trabajadores {
             e.printStackTrace();
         }
 
-        // Comprobamos si el disparador ya existe
+        // Creamos el disparador trg_verificar_sueldo
         try {
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
