@@ -23,19 +23,23 @@ public class Facturacion {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        // Inserción de datos en la tabla Factura
-        // try {
-        // Statement stmt = conn.createStatement();
-        // stmt.executeUpdate(
-        // "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación
-        // doble', '2021-05-01', 1)");
-        // stmt.executeUpdate(
-        // "INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Habitación
-        // individual', '2021-05-02', 2)");
-        // stmt.close();
-        // } catch (SQLException e) {
-        // e.printStackTrace();
-        // }
+        try {
+            Statement stmt = conn.createStatement();
+            String triggerSQL = "CREATE OR REPLACE TRIGGER validar_reembolso "
+                    + "BEFORE UPDATE ON Factura "
+                    + "FOR EACH ROW "
+                    + "BEGIN "
+                    + "IF :OLD.reembolsada = 1 THEN "
+                    + "RAISE_APPLICATION_ERROR(-20301, 'La factura ya ha sido reembolsada.'); "
+                    + "END IF; "
+                    + "END; ";
+
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'validar_reembolso' creado o reemplazado correctamente.");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void mostrarTablas(Connection conn) {
@@ -92,23 +96,29 @@ public class Facturacion {
     public static void añadirMetodoPago(Connection conn) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nIndique el NIF del cliente:");
-        String nif = scanner.nextLine();
-        System.out.print("Indique el número de la tarjeta:");
+        System.out.print("\nIndique el DNI del cliente: ");
+        String dni = scanner.nextLine();
+        try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM Cliente WHERE dni = ?")) {
+            pstmt.setString(1, dni);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    System.out.println("El cliente no existe.");
+                    return;
+                } else if (rs.getString("tarjeta") != null) {
+                    System.out.println("El cliente ya tiene un método de pago asociado.");
+                    return;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        System.out.print("\nIndique el número de la tarjeta: ");
         String numTarjeta = scanner.nextLine();
 
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + nif + "'");
-            ResultSet rs = stmt.getResultSet();
-            if (!rs.next()) {
-                System.out.println("El cliente no existe.");
-                return;
-            } else if (rs.getString("numTarjeta") != null) {
-                System.out.println("El cliente ya tiene un método de pago asociado.");
-                return;
-            }
-            stmt.executeUpdate("UPDATE Cliente SET numTarjeta = '" + numTarjeta + "' WHERE nif = '" + nif + "'");
+            stmt.executeUpdate("UPDATE Cliente SET tarjeta = '" + numTarjeta + "' WHERE dni = '" + dni + "'");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -117,21 +127,21 @@ public class Facturacion {
     public static void eliminarMetodoPago(Connection conn) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nIndique el NIF del cliente:");
-        String nif = scanner.nextLine();
+        System.out.print("\nIndique el DNI del cliente: ");
+        String dni = scanner.nextLine();
 
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + nif + "'");
+            stmt.executeQuery("SELECT * FROM Cliente WHERE dni = '" + dni + "'");
             ResultSet rs = stmt.getResultSet();
             if (!rs.next()) {
                 System.out.println("El cliente no existe.");
                 return;
-            } else if (rs.getString("numTarjeta") == null) {
+            } else if (rs.getString("tarjeta") == null) {
                 System.out.println("El cliente no tiene un método de pago asociado.");
                 return;
             }
-            stmt.executeUpdate("UPDATE Cliente SET numTarjeta = NULL WHERE nif = '" + nif + "'");
+            stmt.executeUpdate("UPDATE Cliente SET tarjeta = NULL WHERE dni = '" + dni + "'");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -140,36 +150,46 @@ public class Facturacion {
     public static void generarFactura(Connection conn) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nIndique el código de la reserva:");
+        System.out.print("\nIndique el código de la reserva: ");
         String codReserva = scanner.nextLine();
 
         try {
             Statement stmt = conn.createStatement();
-            stmt.executeQuery("SELECT * FROM Reserva WHERE codReserva = '" + codReserva + "'");
+            stmt.executeQuery("SELECT * FROM Reserva WHERE id = '" + codReserva + "'");
             ResultSet rs = stmt.getResultSet();
             if (!rs.next()) {
                 System.out.println("La reserva no existe.");
                 return;
             } else {
                 // Comprobar que el cliente tiene un método de pago asociado
-                stmt.executeQuery("SELECT * FROM Cliente WHERE nif = '" + rs.getString("nif") + "'");
+                stmt.executeQuery("SELECT * FROM Cliente WHERE dni = '" + rs.getString("dni") + "'");
                 ResultSet rsCliente = stmt.getResultSet();
                 if (!rsCliente.next()) {
                     System.out.println("El cliente no existe.");
                     return;
-                } else if (rsCliente.getString("numTarjeta") == null) {
+                } else if (rsCliente.getString("tarjeta") == null) {
                     System.out.println("El cliente no tiene un método de pago asociado.");
                     return;
                 }
             }
-            stmt.executeUpdate("INSERT INTO Factura (concepto, fecha, codReserva) VALUES ('Reserva', CURDATE(), '"
-                    + codReserva + "')");
-            // Devolver el identificador generado
-            stmt.executeQuery("SELECT LAST_INSERT_ID()");
-            ResultSet rsId = stmt.getResultSet();
-            rsId.next();
-            System.out.println("Factura generada con identificador " + rsId.getInt(1));
+            System.out.print("\nIndique el concepto de la reserva: ");
+            String concepto = scanner.nextLine();
+            String sql = "INSERT INTO Factura (concepto, fecha, codReserva) VALUES (?, SYSDATE, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql, new String[] { "id" })) {
+                pstmt.setString(1, concepto);
+                pstmt.setString(2, codReserva);
 
+                pstmt.executeUpdate();
+
+                try (ResultSet rs2 = pstmt.getGeneratedKeys()) {
+                    if (rs2.next()) {
+                        int idGenerado = rs2.getInt(1); // Recupera la clave generada
+                        System.out.println("Factura generada con identificador " + idGenerado);
+                    } else {
+                        System.out.println("No se generó ninguna clave.");
+                    }
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -178,7 +198,7 @@ public class Facturacion {
     public static void consultarFactura(Connection conn) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nIndique el identificador de la factura:");
+        System.out.print("\nIndique el identificador de la factura: ");
         String codFactura = scanner.nextLine();
 
         try {
@@ -203,7 +223,7 @@ public class Facturacion {
     public static void reembolsarFactura(Connection conn) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("\nIndique el identificador de la factura:");
+        System.out.print("\nIndique el identificador de la factura: ");
         String codFactura = scanner.nextLine();
 
         try {
@@ -213,11 +233,12 @@ public class Facturacion {
             if (!rs.next()) {
                 System.out.println("La factura no existe.");
                 return;
-            } else if (rs.getBoolean("reembolsada")) {
-                System.out.println("La factura ya ha sido reembolsada.");
-                return;
             }
-            stmt.executeUpdate("UPDATE Factura SET reembolsada = TRUE WHERE id = '" + codFactura + "'");
+            // else if (rs.getBoolean("reembolsada")) {
+            // System.out.println("La factura ya ha sido reembolsada.");
+            // return;
+            // }
+            stmt.executeUpdate("UPDATE Factura SET reembolsada = 1 WHERE id = '" + codFactura + "'");
             System.out.println("Factura reembolsada con éxito.");
         } catch (SQLException e) {
             e.printStackTrace();
