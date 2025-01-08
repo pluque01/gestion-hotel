@@ -82,6 +82,38 @@ public class GestionReservas {
             e.printStackTrace();
         }
 
+        // Comprobamos si el disparador ya existe
+        try {
+
+            // Si no existe creamos el disparador
+            Statement stmt = conn.createStatement();
+            String triggerSQL = "CREATE OR REPLACE TRIGGER trg_check_habitacion_disponible "
+                    + "BEFORE INSERT OR UPDATE ON Reserva "
+                    + "FOR EACH ROW "
+                    + "DECLARE "
+                    + "  habitaciones_ocupadas NUMBER; "
+                    + "BEGIN "
+                    + " SELECT COUNT(*)"
+                    + " INTO habitaciones_ocupadas"
+                    + " FROM reserva"
+                    + " WHERE habitacion = :NEW.habitacion"
+                    + "     AND (:NEW.fechaInicio BETWEEN fechaInicio AND fechaFinal"
+                    + "         OR :NEW.fechaFinal BETWEEN fechaInicio AND fechaFinal"
+                    + "         OR fechaInicio BETWEEN :NEW.fechaInicio AND :NEW.fechaFinal"
+                    + "         OR fechaFinal BETWEEN :NEW.fechaInicio AND :NEW.fechaFinal);"
+                    + " IF habitaciones_ocupadas > 0 THEN"
+                    + "    RAISE_APPLICATION_ERROR(-20001, 'La habitación ya está reservada en las fechas especificadas.');"
+                    + " END IF;"
+                    + "END;";
+
+            // Ejecutar el código del disparador
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'trg_check_habitacion_disponible' creado correctamente.");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public static void mostrarTablas(Connection conn) {
@@ -206,6 +238,15 @@ public class GestionReservas {
             String tipoHabitacion = scanner.nextLine();
 
             // Verificar que existe una habitación disponible del tipo seleccionado
+            /*
+             * ESTÁ MAL IMPLEMENTADO PARA QUE SALGA EL TRIGGER:
+             * si tengo una reserva entre las fechas 2025-01-10 y 2025-01-15
+             * e intento insertar una reserva de la misma habitacion entre las fechas
+             * 2025-01-11 y 2025-01-14
+             * En ese caso el día 10 no está entre el 11 y el 14, ni el día 15 está entre el
+             * 11 y el 14 -> pero aún así debería dar error
+             * Da error el trigger en vez de la comprobación
+             */
             String checkDisponibilidadSQL = "SELECT id FROM Habitacion WHERE tipo = ? AND id NOT IN (" +
                     "SELECT habitacion FROM Reserva WHERE (fechaInicio BETWEEN ? AND ? " +
                     "OR fechaFinal BETWEEN ? AND ?) AND habitacion IN (" +
