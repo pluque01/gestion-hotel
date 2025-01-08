@@ -88,7 +88,7 @@ public class GestionReservas {
             // Si no existe creamos el disparador
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_check_habitacion_disponible "
-                    + "BEFORE INSERT OR UPDATE ON Reserva "
+                    + "BEFORE INSERT ON Reserva "
                     + "FOR EACH ROW "
                     + "DECLARE "
                     + "  habitaciones_ocupadas NUMBER; "
@@ -102,7 +102,7 @@ public class GestionReservas {
                     + "         OR fechaInicio BETWEEN :NEW.fechaInicio AND :NEW.fechaFinal"
                     + "         OR fechaFinal BETWEEN :NEW.fechaInicio AND :NEW.fechaFinal);"
                     + " IF habitaciones_ocupadas > 0 THEN"
-                    + "    RAISE_APPLICATION_ERROR(-20001, 'La habitación ya está reservada en las fechas especificadas.');"
+                    + "    raise_application_error(-20001, 'La habitación ya está reservada en las fechas especificadas.');"
                     + " END IF;"
                     + "END;";
 
@@ -301,7 +301,7 @@ public class GestionReservas {
             System.out.println("Reserva realizada con éxito. Costo total: " + costoTotal + " EUR");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             System.out.println("Error al realizar la reserva: " + e.getMessage());
         }
     }
@@ -367,7 +367,7 @@ public class GestionReservas {
             // Pedir el ID de la reserva a modificar
             int idReserva;
             try {
-                System.out.print("Introduce el ID de la reserva a cancelar: ");
+                System.out.print("Introduce el ID de la reserva: ");
                 idReserva = scanner.nextInt();
                 scanner.nextLine(); // Consumir la nueva línea
             } catch (InputMismatchException e) {
@@ -408,20 +408,24 @@ public class GestionReservas {
             String nuevoTipoHabitacion = scanner.nextLine();
 
             // Verificar disponibilidad de habitaciones excluyendo la habitación actual
+
             String checkDisponibilidadSQL = "SELECT id FROM Habitacion WHERE tipo = ? AND id NOT IN (" +
-                    "SELECT habitacion FROM Reserva WHERE (fechaInicio BETWEEN ? AND ? " +
-                    "OR fechaFinal BETWEEN ? AND ?) AND habitacion IN (" +
-                    "SELECT id FROM Habitacion WHERE tipo = ?)) OR id = ? AND ROWNUM = 1";
+                    "SELECT habitacion FROM Reserva WHERE (fechaInicio BETWEEN ? AND ?) " +
+                    "OR (fechaFinal BETWEEN ? AND ?) OR (? BETWEEN fechaInicio AND fechaFinal) OR (? BETWEEN fechaInicio AND fechaFinal) AND habitacion IN ("
+                    +
+                    "SELECT id FROM Habitacion WHERE tipo = ?)) OR id = ?";
 
             int habitacionId = -1;
             try (PreparedStatement stmt = conn.prepareStatement(checkDisponibilidadSQL)) {
-                stmt.setString(1, nuevoTipoHabitacion);
-                stmt.setDate(2, sqlNuevaFechaInicio);
-                stmt.setDate(3, sqlNuevaFechaFinal);
-                stmt.setDate(4, sqlNuevaFechaInicio);
-                stmt.setDate(5, sqlNuevaFechaFinal);
-                stmt.setString(6, nuevoTipoHabitacion);
-                stmt.setInt(7, habitacionActual);
+                stmt.setString(1, nuevoTipoHabitacion); // Tipo de habitación
+                stmt.setDate(2, sqlNuevaFechaInicio); // Fecha inicio
+                stmt.setDate(3, sqlNuevaFechaFinal); // Fecha final
+                stmt.setDate(4, sqlNuevaFechaInicio); // Fecha inicio
+                stmt.setDate(5, sqlNuevaFechaFinal); // Fecha final
+                stmt.setDate(6, sqlNuevaFechaInicio); // Fecha inicio
+                stmt.setDate(7, sqlNuevaFechaFinal); // Fecha final
+                stmt.setString(8, nuevoTipoHabitacion);
+                stmt.setInt(9, habitacionActual);
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     habitacionId = rs.getInt(1);
@@ -451,7 +455,7 @@ public class GestionReservas {
             System.out.println("Reserva con ID " + idReserva + " modificada exitosamente.");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             System.out.println("Error al modificar la reserva: " + e.getMessage());
         }
     }
