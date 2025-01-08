@@ -88,8 +88,6 @@ public class GestionSuministros {
                     "END;";
             stmt.executeUpdate(sqlTrigger);
 
-            System.out.println("Tabla 'suministro' y disparador creados correctamente.");
-
         } catch (SQLException e) {
             System.out.println("Error al verificar o crear la tabla 'suministro': " + e.getMessage());
         }
