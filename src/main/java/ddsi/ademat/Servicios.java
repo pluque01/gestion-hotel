@@ -69,10 +69,10 @@ public class Servicios {
             System.out.print("Introduce el aforo máximo: ");
             int aforo = scanner.nextInt();
 
-            if (aforo <= 0) {
-                System.out.println("El aforo debe ser mayor que 0.");
-                return;
-            }
+//            if (aforo <= 0) {
+//                System.out.println("El aforo debe ser mayor que 0.");
+//                return;
+//            }
 
             String sql = "BEGIN " +
                     "INSERT INTO Actividad (nombre, precio, horario, aforo) " +
