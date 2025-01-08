@@ -56,7 +56,7 @@ public class GestionClientes {
                     + "domicilio VARCHAR(60),"
                     + "email VARCHAR(30) CONSTRAINT email_clave_candidata UNIQUE NOT NULL,"
                     + "puntos INTEGER,"
-                    + "rango VARCHAR(20) CONSTRAINT rango_chk CHECK (rango IN ('Inicial', 'Avanzado', 'VIP', 'Platino')),"
+                    + "rango VARCHAR(20) CONSTRAINT),"
                     + "tarjeta VARCHAR(20),"
                     + "PRIMARY KEY (dni)"
                     + ")");
@@ -64,6 +64,25 @@ public class GestionClientes {
                     "INSERT INTO Cliente (nombre, apellidos, telefono, dni, domicilio, email, puntos, rango, tarjeta) VALUES ('Rafael','Córdoba Lopez','684848493','28394823G','Mesones 54','rafacorlopg@gmail.com', 0, 'Inicial', '1234567890')");
             stmt.executeUpdate(
                     "INSERT INTO Cliente (nombre, apellidos, telefono, dni, domicilio, email, puntos, rango, tarjeta) VALUES ('Néstor','Martinez Saez','764665788','78943659L','Puentezuelas 12','nestormm@hotmail.es', 0, 'Inicial', '0987654321')");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Create trigger to validate rango
+        try {
+            Statement stmt = conn.createStatement();
+            String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_rango "
+                    + "BEFORE INSERT OR UPDATE ON Cliente "
+                    + "FOR EACH ROW "
+                    + "BEGIN "
+                    + "    IF :NEW.rango NOT IN ('Inicial', 'Avanzado', 'VIP', 'Platino') THEN "
+                    + "        raise_application_error(-20601, 'El rango debe ser uno de los siguientes valores: Inicial, Avanzado, VIP, Platino'); "
+                    + "    END IF; "
+                    + "END;";
+
+            stmt.execute(triggerSQL);
+            System.out.println("Disparador 'trg_verificar_rango' creado o reemplazado correctamente.");
             stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -199,10 +218,10 @@ public class GestionClientes {
 
         System.out.println("\nPor favor indique el RANGO del cliente ('Inicial', 'Avanzado', 'VIP', 'Platino'): \n");
         String rango = scanner.nextLine();
-        while (!esRangoValido(rango)) {
-            System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
-            rango = scanner.nextLine();
-        }
+        // while (!esRangoValido(rango)) {
+        //     System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
+        //     rango = scanner.nextLine();
+        // }
 
         System.out.println("\nPor favor indique la TARJETA del cliente: \n");
         String tarjeta = scanner.nextLine();
@@ -426,10 +445,10 @@ public class GestionClientes {
 
         System.out.println("\nPor favor indique el RANGO del cliente ('Inicial', 'Avanzado', 'VIP', 'Platino'): \n");
         String rango = scanner.nextLine();
-        if (!esRangoValido(rango)) {
-            System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
-            return;
-        }
+        // if (!esRangoValido(rango)) {
+        //     System.out.println("\nRango no válido, intentelo de nuevo ('Inicial', 'Avanzado', 'VIP', 'Platino')\n");
+        //     return;
+        // }
 
         System.out.println("\nPor favor indique la TARJETA del cliente: \n");
         String tarjeta = scanner.nextLine();
