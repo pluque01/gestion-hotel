@@ -34,16 +34,16 @@ public class GestionClientes {
         return esUnica;
     }
 
-    private static final String[] VALID_RANGOS = {"Inicial", "Avanzado", "VIP", "Platino"};
+    // private static final String[] VALID_RANGOS = {"Inicial", "Avanzado", "VIP", "Platino"};
 
-    private static boolean esRangoValido(String rango) {
-        for (String validRango : VALID_RANGOS) {
-            if (validRango.equals(rango)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // private static boolean esRangoValido(String rango) {
+    //     for (String validRango : VALID_RANGOS) {
+    //         if (validRango.equals(rango)) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 
     public static void crearTablas(Connection conn) {
         try {
@@ -56,7 +56,7 @@ public class GestionClientes {
                     + "domicilio VARCHAR(60),"
                     + "email VARCHAR(30) CONSTRAINT email_clave_candidata UNIQUE NOT NULL,"
                     + "puntos INTEGER,"
-                    + "rango VARCHAR(20) CONSTRAINT),"
+                    + "rango VARCHAR(20),"
                     + "tarjeta VARCHAR(20),"
                     + "PRIMARY KEY (dni)"
                     + ")");
