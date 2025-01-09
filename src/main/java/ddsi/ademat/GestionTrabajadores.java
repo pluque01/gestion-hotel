@@ -6,74 +6,112 @@ import java.time.LocalDate;
 
 public class GestionTrabajadores {
     public static void crearTablas(Connection conn) {
+        try {
+            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
+            
+        } catch (SQLException e) {
+            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
+        }
         
         // Creamos la tabla Trabajador
         try {
             Statement stmt = conn.createStatement();
             GestionHotel.borrarTabla(conn, "Trabajador");
             stmt.executeUpdate("CREATE TABLE Trabajador ("
-                    + "dni CHAR(9) NOT NULL,"
-                    + "nombre VARCHAR(20) NOT NULL,"
-                    + "apellidos VARCHAR(50) NOT NULL,"
-                    + "domicilio VARCHAR(50) NOT NULL,"
-                    + "telefono VARCHAR(20) NOT NULL,"
-                    + "email VARCHAR(50) NOT NULL,"
-                    + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
-                    + "nomina DECIMAL(10, 2) NOT NULL,"
-                    + "fecha_contratacion DATE DEFAULT SYSDATE,"
-                    + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
-                    + "PRIMARY KEY (dni)"
-                    + ")");
+                + "dni CHAR(9) NOT NULL,"
+                + "nombre VARCHAR(20) NOT NULL,"
+                + "apellidos VARCHAR(50) NOT NULL,"
+                + "domicilio VARCHAR(50) NOT NULL,"
+                + "telefono VARCHAR(20) NOT NULL,"
+                + "email VARCHAR(50) NOT NULL,"
+                + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
+                + "nomina DECIMAL(10, 2) NOT NULL,"
+                + "fecha_contratacion DATE DEFAULT SYSDATE,"
+                + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
+                + "PRIMARY KEY (dni)"
+                + ")");
+            conn.commit(); // Hacer commit después de crear la tabla
         } catch (SQLException e) {
-            System.out.println("Error al crear la tabla Trabajador");e.getMessage();
+            System.out.println("Error al crear la tabla Trabajador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
 
         // Creamos el disparador trg_verificar_sueldo
         try {
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
-                + "BEFORE INSERT OR UPDATE ON Trabajador "
-                + "FOR EACH ROW "
-                + "DECLARE "
-                + "    salario_minimo CONSTANT NUMBER := 1134; "
-                + "    fecha_actual DATE := SYSDATE; "
-                + "BEGIN "
-                + "    IF :NEW.nomina < salario_minimo THEN "
-                + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
-                + "    END IF; "
-                + "    IF ABS(MONTHS_BETWEEN(fecha_actual, :NEW.fecha_ultimo_aumento)) > 24 THEN "
-                + "        raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
-                + "    END IF; "
-                + "    IF UPDATING AND :NEW.nomina = :OLD.nomina THEN "
-                + "        IF ABS(MONTHS_BETWEEN(:OLD.fecha_ultimo_aumento, :NEW.fecha_ultimo_aumento)) > 24 THEN "
-                + "            raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
-                + "        END IF; "
-                + "    END IF; "
-                + "END;";
+            + "BEFORE INSERT OR UPDATE ON Trabajador "
+            + "FOR EACH ROW "
+            + "DECLARE "
+            + "    salario_minimo CONSTANT NUMBER := 1134; "
+            + "    fecha_actual DATE := SYSDATE; "
+            + "BEGIN "
+            + "    IF :NEW.nomina < salario_minimo THEN "
+            + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
+            + "    END IF; "
+            + "    IF ABS(MONTHS_BETWEEN(fecha_actual, :NEW.fecha_ultimo_aumento)) > 24 THEN "
+            + "        raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+            + "    END IF; "
+            + "    IF UPDATING AND :NEW.nomina = :OLD.nomina THEN "
+            + "        IF ABS(MONTHS_BETWEEN(:OLD.fecha_ultimo_aumento, :NEW.fecha_ultimo_aumento)) > 24 THEN "
+            + "            raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+            + "        END IF; "
+            + "    END IF; "
+            + "END;";
 
             // Ejecutar el código del disparador
             stmt.execute(triggerSQL);
             System.out.println("Disparador 'trg_verificar_sueldo' creado o reemplazado correctamente.");
+            conn.commit(); // Hacer commit después de crear el disparador
             stmt.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al crear el disparador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
-
 
         // Insertamos dos trabajadores de ejemplo
         try {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate(
-                    "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00, TO_DATE('2020-01-01', 'YYYY-MM-DD'))");
+                "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00, TO_DATE('2020-01-01', 'YYYY-MM-DD'))");
+            conn.commit(); // Hacer commit después de insertar cada fila
             stmt.executeUpdate(
-                    "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
+                "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
+            conn.commit(); // Hacer commit después de insertar cada fila
             stmt.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al insertar los trabajadores de ejemplo: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
+        }
+
+        // Volvemos a activar el auto-commit
+        try {
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            System.out.println("Error al activar el auto-commit: " + e.getMessage());
         }
     }
 
     public static void bucleInteractivo(Connection conn, Scanner scanner) {
+        try {
+            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
+        } catch (SQLException e) {
+            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
+        }
+
+
         boolean terminar = false;
 
         while (!terminar) {
@@ -90,6 +128,12 @@ public class GestionTrabajadores {
             if (scanner.hasNextInt()) {
                 int choice = scanner.nextInt();
                 scanner.nextLine(); // Consumir el salto de línea
+
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    System.out.println("Error al hacer commit: " + e.getMessage());
+                }
 
                 switch (choice) {
                     case 1:
@@ -114,7 +158,20 @@ public class GestionTrabajadores {
                     default:
                         System.out.println("Opción desconocida. Por favor, elige una opción válida.");
                 }
+
+
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    System.out.println("Error al hacer commit: " + e.getMessage());
+                }
             }
+        }
+
+        try {
+            conn.setAutoCommit(true); // Volver a activar el auto-commit
+        } catch (SQLException e) {
+            System.out.println("Error al activar el auto-commit: " + e.getMessage());
         }
     }
 
@@ -135,32 +192,53 @@ public class GestionTrabajadores {
             String email = scanner.nextLine();
             System.out.print("Puesto (ADMINISTRADOR, RECEPCIONISTA, LIMPIADOR): ");
             String puesto = scanner.nextLine();
-            System.out.print("Nómina: ");
-            double nomina = Double.parseDouble(scanner.nextLine());
             System.out.print("Fecha de contratación (YYYY-MM-DD) [opcional]: ");
             String fechaContratacionStr = scanner.nextLine();
             System.out.print("Fecha del último aumento (YYYY-MM-DD) [opcional]: ");
             String fechaUltimoAumentoStr = scanner.nextLine();
+
+            conn.commit(); // Hacer commit después de leer los datos
     
-            String sql = "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion, fecha_ultimo_aumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, dni);
-                pstmt.setString(2, nombre);
-                pstmt.setString(3, apellidos);
-                pstmt.setString(4, domicilio);
-                pstmt.setString(5, telefono);
-                pstmt.setString(6, email);
-                pstmt.setString(7, puesto);
-                pstmt.setDouble(8, nomina);
-                pstmt.setDate(9, fechaContratacionStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaContratacionStr));
-                pstmt.setDate(10, fechaUltimoAumentoStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaUltimoAumentoStr));
-                pstmt.executeUpdate();
-                System.out.println("Trabajador insertado correctamente.");
-            } catch (Exception e) {
-                System.out.println("Error al insertar los datos: " + e.getMessage());
+            boolean success = false;
+            while (!success) {
+                System.out.print("Nómina: ");
+                double nomina = Double.parseDouble(scanner.nextLine());
+
+                String sql = "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion, fecha_ultimo_aumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, dni);
+                    pstmt.setString(2, nombre);
+                    pstmt.setString(3, apellidos);
+                    pstmt.setString(4, domicilio);
+                    pstmt.setString(5, telefono);
+                    pstmt.setString(6, email);
+                    pstmt.setString(7, puesto);
+                    pstmt.setDouble(8, nomina);
+                    pstmt.setDate(9, fechaContratacionStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaContratacionStr));
+                    pstmt.setDate(10, fechaUltimoAumentoStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaUltimoAumentoStr));
+                    pstmt.executeUpdate();
+                    conn.commit();
+                    System.out.println("Trabajador insertado correctamente.");
+                    success = true;
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 20601 || e.getErrorCode() == 20602) {
+                        System.out.println("Error del disparador: " + e.getMessage());
+                        conn.rollback();
+                        System.out.println("Por favor, introduce un nuevo valor para la nómina.");
+                    } else {
+                        System.out.println("Error al insertar el trabajador: " + e.getMessage());
+                        conn.rollback();
+                        break;
+                    }
+                }
             }
         } catch (Exception e) {
-            System.out.println("Error al insertar los datos: " + e.getMessage());
+            System.out.println("Error al insertar el trabajador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 
@@ -179,8 +257,15 @@ public class GestionTrabajadores {
                     System.out.println("No se encontró ningún trabajador con el DNI proporcionado.");
                 }
             }
+
+            conn.commit();
         } catch (Exception e) {
             System.out.println("Error al eliminar el trabajador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 
@@ -213,93 +298,115 @@ public class GestionTrabajadores {
             String email = scanner.nextLine();
             System.out.print("Puesto (ADMINISTRADOR, RECEPCIONISTA, LIMPIADOR): ");
             String puesto = scanner.nextLine();
-            System.out.print("Nómina: ");
-            String nominaStr = scanner.nextLine();
             System.out.print("Fecha de contratación (YYYY-MM-DD): ");
             String fechaContratacionStr = scanner.nextLine();
 
-            StringBuilder sql = new StringBuilder("UPDATE Trabajador SET ");
-            boolean first = true;
+            Savepoint savepoint1 = conn.setSavepoint("Savepoint1"); // Creamos un savepoint después de leer los datos
+    
+            boolean success = false;
+            while (!success) {
 
-            if (!nombre.isEmpty()) {
-                sql.append("nombre = ?");
-                first = false;
-            }
-            if (!apellidos.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("apellidos = ?");
-                first = false;
-            }
-            if (!domicilio.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("domicilio = ?");
-                first = false;
-            }
-            if (!telefono.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("telefono = ?");
-                first = false;
-            }
-            if (!email.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("email = ?");
-                first = false;
-            }
-            if (!puesto.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("puesto = ?");
-                first = false;
-            }
-            if (!nominaStr.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("nomina = ?, fecha_ultimo_aumento = ?");
-                first = false;
-            }
-            if (!fechaContratacionStr.isEmpty()) {
-                if (!first)
-                    sql.append(", ");
-                sql.append("fecha_contratacion = ?");
-            }
+                StringBuilder sql = new StringBuilder("UPDATE Trabajador SET ");
+                boolean first = true;
 
-            sql.append(" WHERE dni = ?");
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
-                int index = 1;
-                if (!nombre.isEmpty())
-                    pstmt.setString(index++, nombre);
-                if (!apellidos.isEmpty())
-                    pstmt.setString(index++, apellidos);
-                if (!domicilio.isEmpty())
-                    pstmt.setString(index++, domicilio);
-                if (!telefono.isEmpty())
-                    pstmt.setString(index++, telefono);
-                if (!email.isEmpty())
-                    pstmt.setString(index++, email);
-                if (!puesto.isEmpty())
-                    pstmt.setString(index++, puesto);
-                if (!nominaStr.isEmpty()) {
-                    pstmt.setDouble(index++, Double.parseDouble(nominaStr));
-                    pstmt.setDate(index++, Date.valueOf(LocalDate.now()));
+                if (!nombre.isEmpty()) {
+                    sql.append("nombre = ?");
+                    first = false;
                 }
-                if (!fechaContratacionStr.isEmpty())
-                    pstmt.setDate(index++, Date.valueOf(fechaContratacionStr));
-                pstmt.setString(index, dni);
+                if (!apellidos.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("apellidos = ?");
+                    first = false;
+                }
+                if (!domicilio.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("domicilio = ?");
+                    first = false;
+                }
+                if (!telefono.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("telefono = ?");
+                    first = false;
+                }
+                if (!email.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("email = ?");
+                    first = false;
+                }
+                if (!puesto.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("puesto = ?");
+                    first = false;
+                }
+                if (!fechaContratacionStr.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("fecha_contratacion = ?");
+                }
 
-                int affectedRows = pstmt.executeUpdate();
-                if (affectedRows > 0) {
-                    System.out.println("Trabajador modificado correctamente.");
-                } else {
-                    System.out.println("No se pudo modificar el trabajador.");
+                System.out.print("Nómina: ");
+                String nominaStr = scanner.nextLine();
+                if (!nominaStr.isEmpty()) {
+                    if (!first)
+                        sql.append(", ");
+                    sql.append("nomina = ?, fecha_ultimo_aumento = ?");
+                    first = false;
+                }
+    
+                sql.append(" WHERE dni = ?");
+
+                try (PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+                    int index = 1;
+                    if (!nombre.isEmpty()) pstmt.setString(index++, nombre);
+                    if (!apellidos.isEmpty()) pstmt.setString(index++, apellidos);
+                    if (!domicilio.isEmpty()) pstmt.setString(index++, domicilio);
+                    if (!telefono.isEmpty()) pstmt.setString(index++, telefono);
+                    if (!email.isEmpty()) pstmt.setString(index++, email);
+                    if (!puesto.isEmpty()) pstmt.setString(index++, puesto);
+                    if (!fechaContratacionStr.isEmpty()) pstmt.setString(index++, fechaContratacionStr);
+                    if (!nominaStr.isEmpty()) {
+                        pstmt.setString(index++, nominaStr);
+                        pstmt.setDate(index++, new java.sql.Date(System.currentTimeMillis())); // fecha_ultimo_aumento
+                    }
+                    pstmt.setString(index, dni);
+
+                    int out = pstmt.executeUpdate();
+                    if (out != 0) {
+                        System.out.println("Trabajador modificado correctamente.");
+                        success = true;
+                        conn.commit();
+                    } else {
+                        System.out.println("No ha proporcionado ningún dato.");
+                        conn.rollback();
+                    }
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 20601 || e.getErrorCode() == 20602) {
+                        System.out.println("Error del disparador: " + e.getMessage());
+                        conn.rollback(savepoint1);
+                        System.out.println("Por favor, introduce un nuevo valor para la nómina.");
+                    } else {
+                        System.out.println("Error al modificar el trabajador: " + e.getMessage());
+                        try {
+                            conn.rollback(); // Hacer rollback en caso de error
+                        } catch (SQLException ex) {
+                            System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+                        }
+                        break;
+                    }
                 }
             }
         } catch (Exception e) {
             System.out.println("Error al modificar el trabajador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 
@@ -330,6 +437,11 @@ public class GestionTrabajadores {
             }
         } catch (Exception e) {
             System.out.println("Error al consultar el trabajador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 
@@ -340,6 +452,11 @@ public class GestionTrabajadores {
             System.out.println();
         } catch (SQLException e) {
             System.out.println("Error al mostrar las tablas: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 }
