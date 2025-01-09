@@ -43,7 +43,6 @@ public class Main {
                 int choice = scanner.nextInt();
 
                 switch (choice) {
-                    // TODO: añadir cada uno su método interactivo
                     case 1:
                         borrarYCrearTablas(conn);
                         break;
@@ -54,7 +53,7 @@ public class Main {
                         Facturacion.bucleInteractivo(conn);
                         break;
                     case 4:
-                        Trabajadores.bucleInteractivo(conn, scanner);
+                        GestionTrabajadores.bucleInteractivo(conn, scanner);
                         break;
                     case 5:
                         GestionSuministros.bucleInteractivo(conn);
@@ -86,21 +85,19 @@ public class Main {
         GestionHotel.borrarTablas(conn);
         GestionClientes.crearTablas(conn);
         GestionReservas.crearTablas(conn);
-        Trabajadores.crearTablas(conn);
+        GestionTrabajadores.crearTablas(conn);
         Facturacion.crearTablas(conn);
         Servicios.crearTablas(conn);
         GestionSuministros.crearTablas(conn);
         System.out.println("Tablas borradas y creadas con éxito");
-        // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
         GestionClientes.mostrarTablas(conn);
         GestionReservas.mostrarTablas(conn);
-        Trabajadores.mostrarTablas(conn);
+        GestionTrabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
         Servicios.mostrarTablas(conn);
         GestionSuministros.mostrarSuministros(conn);
-        // TODO: Añadir cada uno su función de mostrar tablas
     }
 }

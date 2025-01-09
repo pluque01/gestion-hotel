@@ -4,14 +4,14 @@ import java.sql.*;
 import java.util.Scanner;
 import java.time.LocalDate;
 
-public class Trabajadores {
+public class GestionTrabajadores {
     public static void crearTablas(Connection conn) {
         
-        // Creamos la tabla Trabajadores
+        // Creamos la tabla Trabajador
         try {
             Statement stmt = conn.createStatement();
-            GestionHotel.borrarTabla(conn, "Trabajadores");
-            stmt.executeUpdate("CREATE TABLE Trabajadores ("
+            GestionHotel.borrarTabla(conn, "Trabajador");
+            stmt.executeUpdate("CREATE TABLE Trabajador ("
                     + "dni CHAR(9) NOT NULL,"
                     + "nombre VARCHAR(20) NOT NULL,"
                     + "apellidos VARCHAR(50) NOT NULL,"
@@ -24,40 +24,49 @@ public class Trabajadores {
                     + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
                     + "PRIMARY KEY (dni)"
                     + ")");
-
-            // Insertamos dos trabajadores de ejemplo
-            stmt.executeUpdate(
-                    "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00)");
-            stmt.executeUpdate(
-                    "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
-            stmt.close();
-
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al crear la tabla Trabajador");e.getMessage();
         }
 
         // Creamos el disparador trg_verificar_sueldo
         try {
             Statement stmt = conn.createStatement();
             String triggerSQL = "CREATE OR REPLACE TRIGGER trg_verificar_sueldo "
-                + "BEFORE INSERT OR UPDATE ON Trabajadores "
+                + "BEFORE INSERT OR UPDATE ON Trabajador "
                 + "FOR EACH ROW "
                 + "DECLARE "
                 + "    salario_minimo CONSTANT NUMBER := 1134; "
                 + "    fecha_actual DATE := SYSDATE; "
-                + "    fecha_ultimo_aumento DATE; "
                 + "BEGIN "
                 + "    IF :NEW.nomina < salario_minimo THEN "
                 + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
                 + "    END IF; "
-                + "    IF UPDATING AND MONTHS_BETWEEN(fecha_actual, fecha_ultimo_aumento) > 24 THEN "
-                + "        raise_application_error(-20602, 'El trabajador no puede estar más de dos años sin recibir un aumento de sueldo'); "
+                + "    IF ABS(MONTHS_BETWEEN(fecha_actual, :NEW.fecha_ultimo_aumento)) > 24 THEN "
+                + "        raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+                + "    END IF; "
+                + "    IF UPDATING AND :NEW.nomina = :OLD.nomina THEN "
+                + "        IF ABS(MONTHS_BETWEEN(:OLD.fecha_ultimo_aumento, :NEW.fecha_ultimo_aumento)) > 24 THEN "
+                + "            raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+                + "        END IF; "
                 + "    END IF; "
                 + "END;";
 
             // Ejecutar el código del disparador
             stmt.execute(triggerSQL);
             System.out.println("Disparador 'trg_verificar_sueldo' creado o reemplazado correctamente.");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+        // Insertamos dos trabajadores de ejemplo
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate(
+                    "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00, TO_DATE('2020-01-01', 'YYYY-MM-DD'))");
+            stmt.executeUpdate(
+                    "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
             stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -127,10 +136,13 @@ public class Trabajadores {
             System.out.print("Puesto (ADMINISTRADOR, RECEPCIONISTA, LIMPIADOR): ");
             String puesto = scanner.nextLine();
             System.out.print("Nómina: ");
-            double nomina = scanner.nextDouble();
-            scanner.nextLine(); // Consumir el salto de línea
-
-            String sql = "INSERT INTO Trabajadores (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            double nomina = Double.parseDouble(scanner.nextLine());
+            System.out.print("Fecha de contratación (YYYY-MM-DD) [opcional]: ");
+            String fechaContratacionStr = scanner.nextLine();
+            System.out.print("Fecha del último aumento (YYYY-MM-DD) [opcional]: ");
+            String fechaUltimoAumentoStr = scanner.nextLine();
+    
+            String sql = "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion, fecha_ultimo_aumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 pstmt.setString(2, nombre);
@@ -140,9 +152,12 @@ public class Trabajadores {
                 pstmt.setString(6, email);
                 pstmt.setString(7, puesto);
                 pstmt.setDouble(8, nomina);
+                pstmt.setDate(9, fechaContratacionStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaContratacionStr));
+                pstmt.setDate(10, fechaUltimoAumentoStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaUltimoAumentoStr));
                 pstmt.executeUpdate();
-                pstmt.close();
                 System.out.println("Trabajador insertado correctamente.");
+            } catch (Exception e) {
+                System.out.println("Error al insertar los datos: " + e.getMessage());
             }
         } catch (Exception e) {
             System.out.println("Error al insertar los datos: " + e.getMessage());
@@ -154,7 +169,7 @@ public class Trabajadores {
             System.out.print("Introduce el DNI del trabajador a eliminar: ");
             String dni = scanner.nextLine();
 
-            String sql = "DELETE FROM Trabajadores WHERE dni = ?";
+            String sql = "DELETE FROM Trabajador WHERE dni = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 int affectedRows = pstmt.executeUpdate();
@@ -174,7 +189,7 @@ public class Trabajadores {
             System.out.print("Introduce el DNI del trabajador a modificar: ");
             String dni = scanner.nextLine();
 
-            String checkSql = "SELECT COUNT(*) FROM Trabajadores WHERE dni = ?";
+            String checkSql = "SELECT COUNT(*) FROM Trabajador WHERE dni = ?";
             try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
                 checkStmt.setString(1, dni);
                 ResultSet rs = checkStmt.executeQuery();
@@ -200,8 +215,10 @@ public class Trabajadores {
             String puesto = scanner.nextLine();
             System.out.print("Nómina: ");
             String nominaStr = scanner.nextLine();
+            System.out.print("Fecha de contratación (YYYY-MM-DD): ");
+            String fechaContratacionStr = scanner.nextLine();
 
-            StringBuilder sql = new StringBuilder("UPDATE Trabajadores SET ");
+            StringBuilder sql = new StringBuilder("UPDATE Trabajador SET ");
             boolean first = true;
 
             if (!nombre.isEmpty()) {
@@ -244,6 +261,11 @@ public class Trabajadores {
                 sql.append("nomina = ?, fecha_ultimo_aumento = ?");
                 first = false;
             }
+            if (!fechaContratacionStr.isEmpty()) {
+                if (!first)
+                    sql.append(", ");
+                sql.append("fecha_contratacion = ?");
+            }
 
             sql.append(" WHERE dni = ?");
 
@@ -265,6 +287,8 @@ public class Trabajadores {
                     pstmt.setDouble(index++, Double.parseDouble(nominaStr));
                     pstmt.setDate(index++, Date.valueOf(LocalDate.now()));
                 }
+                if (!fechaContratacionStr.isEmpty())
+                    pstmt.setDate(index++, Date.valueOf(fechaContratacionStr));
                 pstmt.setString(index, dni);
 
                 int affectedRows = pstmt.executeUpdate();
@@ -284,7 +308,7 @@ public class Trabajadores {
             System.out.print("Introduce el DNI del trabajador a consultar: ");
             String dni = scanner.nextLine();
 
-            String sql = "SELECT * FROM Trabajadores WHERE dni = ?";
+            String sql = "SELECT * FROM Trabajador WHERE dni = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, dni);
                 ResultSet rs = pstmt.executeQuery();
@@ -312,7 +336,7 @@ public class Trabajadores {
     public static void mostrarTablas(Connection conn) {
         try {
             System.out.println("\n--- Contenido de Trabajadores ---");
-            GestionHotel.mostrarTabla(conn, "Trabajadores");
+            GestionHotel.mostrarTabla(conn, "Trabajador");
             System.out.println();
         } catch (SQLException e) {
             System.out.println("Error al mostrar las tablas: " + e.getMessage());
