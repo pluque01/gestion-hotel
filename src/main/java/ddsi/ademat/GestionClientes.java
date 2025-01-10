@@ -47,7 +47,15 @@ public class GestionClientes {
 
     public static void crearTablas(Connection conn) {
         try {
+            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
+            
+        } catch (SQLException e) {
+            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
+        }
+
+        try {
             Statement stmt = conn.createStatement();
+            GestionHotel.borrarTabla(conn, "Trabajador");
             stmt.executeUpdate("CREATE TABLE Cliente ("
                     + "nombre VARCHAR(20),"
                     + "apellidos VARCHAR(40),"
@@ -66,7 +74,12 @@ public class GestionClientes {
                     "INSERT INTO Cliente (nombre, apellidos, telefono, dni, domicilio, email, puntos, rango, tarjeta) VALUES ('Néstor','Martinez Saez','764665788','78943659L','Puentezuelas 12','nestormm@hotmail.es', 0, 'Inicial', '0987654321')");
             stmt.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al crear la tabla Cliente: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
 
         // Create trigger to validate rango
@@ -83,9 +96,22 @@ public class GestionClientes {
 
             stmt.execute(triggerSQL);
             System.out.println("Disparador 'trg_verificar_rango' creado o reemplazado correctamente.");
+            conn.commit(); // Hacer commit después de crear el disparador
             stmt.close();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al crear el disparador: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
+        }
+
+        // Volvemos a activar el auto-commit
+        try {
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            System.out.println("Error al activar el auto-commit: " + e.getMessage());
         }
     }
 
@@ -99,6 +125,12 @@ public class GestionClientes {
     }
 
     public static void bucleInteractivo(Connection conn) {
+        try {
+            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
+        } catch (SQLException e) {
+            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
+        }
+        
         boolean terminar = false;
         Scanner scanner = new Scanner(System.in);
 
@@ -112,32 +144,50 @@ public class GestionClientes {
             System.out.println("0. Salir");
 
             System.out.print("Elige una opción: ");
-            int choice = scanner.nextInt();
-            scanner.nextLine();
+            if (scanner.hasNextInt()) {
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // Consumir el salto de línea
 
-            switch (choice) {
-                case 1:
-                    darAltaCliente(conn, scanner);
-                    break;
-                case 2:
-                    darBajaCliente(conn, scanner);
-                    break;
-                case 3:
-                    consultarCliente(conn, scanner);
-                    break;
-                case 4:
-                    modificarCliente(conn, scanner);
-                    break;
-                case 5:
-                    consultarRangoCliente(conn, scanner);
-                    break;
-                case 0:
-                    terminar = true;
-                    System.out.println("Saliendo del subsistema de Cliente...");
-                    break;
-                default:
-                    System.out.println("Opción inválida.");
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    System.out.println("Error al hacer commit: " + e.getMessage());
+                }
+
+                switch (choice) {
+                    case 1:
+                        darAltaCliente(conn, scanner);
+                        break;
+                    case 2:
+                        darBajaCliente(conn, scanner);
+                        break;
+                    case 3:
+                        consultarCliente(conn, scanner);
+                        break;
+                    case 4:
+                        modificarCliente(conn, scanner);
+                        break;
+                    case 5:
+                        consultarRangoCliente(conn, scanner);
+                        break;
+                    case 0:
+                        terminar = true;
+                        System.out.println("Saliendo del subsistema de Cliente...");
+                        break;
+                    default:
+                        System.out.println("Opción inválida.");
+                }
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    System.out.println("Error al hacer commit: " + e.getMessage());
+                }
             }
+        }
+        try {
+            conn.setAutoCommit(true); // Volver a activar el auto-commit
+        } catch (SQLException e) {
+            System.out.println("Error al activar el auto-commit: " + e.getMessage());
         }
     }
 
@@ -242,7 +292,7 @@ public class GestionClientes {
             try {
                 conn.rollback();
             } catch (SQLException ex) {
-                System.out.println("\nERROR: al añadir el cliente" + ex.getMessage());
+                System.out.println("\nERROR: al tratar de hacer rollback: " + ex.getMessage());
             }
         }
     }
@@ -287,11 +337,11 @@ public class GestionClientes {
             stmt.executeUpdate(sql);
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al eliminar el Cliente: " + e.getMessage());
             try {
-                conn.rollback();
+                conn.rollback(); // Hacer rollback en caso de error
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
             }
         }
 
@@ -345,11 +395,11 @@ public class GestionClientes {
             stmt.executeUpdate(sql);
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al consultar el trabajador: " + e.getMessage());
             try {
-                conn.rollback();
+                conn.rollback(); // Hacer rollback en caso de error
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
             }
         }
 
@@ -476,7 +526,12 @@ public class GestionClientes {
         try {
             conn.commit();
         } catch (SQLException e) {
-            System.out.println("\nERROR: al añadir el cliente" + e.getMessage());
+            System.out.println("Error al modificar el Cliente: " + e.getMessage());
+            try {
+                conn.rollback(); // Hacer rollback en caso de error
+            } catch (SQLException ex) {
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
+            }
         }
     }
 
@@ -515,11 +570,11 @@ public class GestionClientes {
             stmt.executeUpdate(sql);
             conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error al consultar el Rabgo: " + e.getMessage());
             try {
-                conn.rollback();
+                conn.rollback(); // Hacer rollback en caso de error
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
             }
         }
 
