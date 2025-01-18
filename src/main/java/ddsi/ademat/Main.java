@@ -1,7 +1,5 @@
 package ddsi.ademat;
 
-import ddsi.ademat.GestionSuministros;
-
 import java.sql.*;
 import java.util.Scanner;
 
@@ -18,13 +16,17 @@ public class Main {
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             System.out.println("Conexión establecida con éxito a la base de datos");
 
+            // Informar al usuario sobre el tratamiento de sus datos y sus derechos
+            System.out.println("\n\nSus datos personales serán tratados conforme al Reglamento General de Protección de Datos (RGPD) y la Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD).");
+            System.out.println("Puede consustar sus derechos en la Agencia Española de Protección de Datos (www.aepd.es).");
+          
             // Desactivar auto-commit
             try {
                 conn.setAutoCommit(false);
             } catch (SQLException e) {
                 System.out.println("Error al desactivar auto-commit: " + e.getMessage());
             }
-
+          
             boolean exit = false;
             Scanner scanner = new Scanner(System.in);
 
@@ -41,10 +43,17 @@ public class Main {
                 System.out.println("0. Salir");
 
                 System.out.print("Elige una opción: ");
+                try{
+                    while (!scanner.hasNextInt()) {
+                        System.out.println("Introduce un número válido");
+                        scanner.next();
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error: " + e.getMessage());
+                }
                 int choice = scanner.nextInt();
 
                 switch (choice) {
-                    // TODO: añadir cada uno su método interactivo
                     case 1:
                         borrarYCrearTablas(conn);
                         break;
@@ -55,7 +64,7 @@ public class Main {
                         Facturacion.bucleInteractivo(conn);
                         break;
                     case 4:
-                        Trabajadores.bucleInteractivo(conn, scanner);
+                        GestionTrabajadores.bucleInteractivo(conn, scanner);
                         break;
                     case 5:
                         GestionSuministros.bucleInteractivo(conn);
@@ -87,7 +96,7 @@ public class Main {
         GestionHotel.borrarTablas(conn);
         GestionClientes.crearTablas(conn);
         GestionReservas.crearTablas(conn);
-        Trabajadores.crearTablas(conn);
+        GestionTrabajadores.crearTablas(conn);
         Facturacion.crearTablas(conn);
         Servicios.crearTablas(conn);
         GestionSuministros.crearTablas(conn);
@@ -97,16 +106,14 @@ public class Main {
             System.out.println("Error al hacer commit: " + e.getMessage());
         }
         System.out.println("Tablas borradas y creadas con éxito");
-        // TODO: Añadir cada uno su función de borrar y crear tablas
     }
 
     public static void mostrarTablas(Connection conn) {
         GestionClientes.mostrarTablas(conn);
         GestionReservas.mostrarTablas(conn);
-        Trabajadores.mostrarTablas(conn);
+        GestionTrabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
         Servicios.mostrarTablas(conn);
         GestionSuministros.mostrarSuministros(conn);
-        // TODO: Añadir cada uno su función de mostrar tablas
     }
 }
