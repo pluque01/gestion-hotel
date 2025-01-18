@@ -6,12 +6,6 @@ import java.time.LocalDate;
 
 public class GestionTrabajadores {
     public static void crearTablas(Connection conn) {
-        try {
-            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
-            
-        } catch (SQLException e) {
-            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
-        }
         
         // Creamos la tabla Trabajador
         try {
@@ -95,22 +89,9 @@ public class GestionTrabajadores {
                 System.out.println("Error al tratar de hacer rollback: " + ex.getMessage());
             }
         }
-
-        // Volvemos a activar el auto-commit
-        try {
-            conn.setAutoCommit(true);
-        } catch (SQLException e) {
-            System.out.println("Error al activar el auto-commit: " + e.getMessage());
-        }
     }
 
     public static void bucleInteractivo(Connection conn, Scanner scanner) {
-        try {
-            conn.setAutoCommit(false); // Desactivar el auto-commit para poder hacer rollback
-        } catch (SQLException e) {
-            System.out.println("Error al desactivar el auto-commit: " + e.getMessage());
-        }
-
 
         boolean terminar = false;
 
@@ -166,12 +147,6 @@ public class GestionTrabajadores {
                     System.out.println("Error al hacer commit: " + e.getMessage());
                 }
             }
-        }
-
-        try {
-            conn.setAutoCommit(true); // Volver a activar el auto-commit
-        } catch (SQLException e) {
-            System.out.println("Error al activar el auto-commit: " + e.getMessage());
         }
     }
 
