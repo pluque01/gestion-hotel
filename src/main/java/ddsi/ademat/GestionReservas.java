@@ -159,6 +159,11 @@ public class GestionReservas {
     public static void bucleInteractivo(Connection conn) {
         Scanner scanner = new Scanner(System.in);
         Savepoint savepoint = null;
+        try {
+            savepoint = conn.setSavepoint("BeforeModifications");
+        } catch (SQLException e) {
+            System.out.println("Error al hacer savepoint: " + e.getMessage());
+        }
         boolean salir = false;
 
         while (!salir) {
@@ -174,12 +179,6 @@ public class GestionReservas {
             System.out.print("Elige una opción: ");
             int opcion = scanner.nextInt();
             scanner.nextLine(); // Consumir la nueva línea
-
-            try {
-                savepoint = conn.setSavepoint("BeforeModifications");
-            } catch (SQLException e) {
-                System.out.println("Error al hacer savepoint: " + e.getMessage());
-            }
 
             switch (opcion) {
                 case 1:
@@ -318,8 +317,7 @@ public class GestionReservas {
             }
 
             System.out.println("Reserva realizada con éxito. Costo total: " + costoTotal + " EUR");
-            GestionHotel.mostrarTabla(conn, "Reserva");
-            GestionHotel.mostrarTabla(conn, "Habitacion");
+            mostrarListadoReservas(conn);
 
         } catch (SQLException e) {
             // e.printStackTrace();
@@ -375,9 +373,7 @@ public class GestionReservas {
             }
 
             System.out.println("Reserva con ID " + idReserva + " cancelada exitosamente.");
-            GestionHotel.mostrarTabla(conn, "Reserva");
-            GestionHotel.mostrarTabla(conn, "Incorpora");
-            GestionHotel.mostrarTabla(conn, "Factura");
+            mostrarListadoReservas(conn);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -477,7 +473,7 @@ public class GestionReservas {
             }
 
             System.out.println("Reserva con ID " + idReserva + " modificada exitosamente.");
-            GestionHotel.mostrarTabla(conn, "Reserva");
+            mostrarListadoReservas(conn);
 
         } catch (SQLException e) {
             // e.printStackTrace();
@@ -612,7 +608,7 @@ public class GestionReservas {
 
                         System.out.println(
                                 "Suplemento " + nombreSuplemento + " añadido a la reserva con ID " + idReserva);
-                        GestionHotel.mostrarTabla(conn, "Incorpora");
+                        mostrarListadoReservas(conn);
 
                     }
                 } else {
@@ -671,7 +667,7 @@ public class GestionReservas {
 
                     System.out
                             .println("Suplemento " + nombreSuplemento + " eliminado de la reserva con ID " + idReserva);
-                    GestionHotel.mostrarTabla(conn, "Incorpora");
+                    mostrarListadoReservas(conn);
                 }
 
             } catch (SQLException e) {
