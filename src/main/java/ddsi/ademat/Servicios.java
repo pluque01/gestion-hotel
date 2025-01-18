@@ -1,12 +1,21 @@
 package ddsi.ademat;
 
 import java.sql.*;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class Servicios {
     public static void bucleOpciones(Connection conn) {
         boolean terminar = false;
         Scanner scanner = new Scanner(System.in);
+
+        Savepoint sp = null;
+
+        try {
+            sp = conn.setSavepoint();
+        } catch (SQLException e) {
+            System.out.println("Error al crear el savepoint: " + e.getMessage());
+        }
 
         while (!terminar) {
             System.out.println("\n--- Menú de Servicios ---");
@@ -16,37 +25,60 @@ public class Servicios {
             System.out.println("4. Cancelar actividad");
             System.out.println("5. Mostrar todas actividades");
             System.out.println("6. Mostrar actividades con filtrado");
-            System.out.println("0. Salir");
+            System.out.println("7. Descartar cambios");
+            System.out.println("0. Guardar y salir");
 
             System.out.print("Elige una opción: ");
-            int opcion = scanner.nextInt();
-            scanner.nextLine();
 
-            switch (opcion) {
-                case 1:
-                    registrarActividad(conn, scanner);
-                    break;
-                case 2:
-                    eliminarActividad(conn, scanner);
-                    break;
-                case 3:
-                    contratarActividad(conn, scanner);
-                    break;
-                case 4:
-                    cancelarActividad(conn, scanner);
-                    break;
-                case 5:
-                    mostrarActividadesCliente(conn);
-                    break;
-                case 6:
-                    mostrarActividadesConFiltrado(conn, scanner);
-                    break;
-                case 0:
-                    terminar = true;
-                    System.out.println("Saliendo del subsistema de Servicios...");
-                    break;
-                default:
-                    System.out.println("Opción inválida.");
+            try {
+                int opcion = scanner.nextInt();
+                scanner.nextLine();
+
+                switch (opcion) {
+                    case 1:
+                        registrarActividad(conn, scanner);
+                        break;
+                    case 2:
+                        eliminarActividad(conn, scanner);
+                        break;
+                    case 3:
+                        contratarActividad(conn, scanner);
+                        break;
+                    case 4:
+                        cancelarActividad(conn, scanner);
+                        break;
+                    case 5:
+                        mostrarActividadesCliente(conn);
+                        break;
+                    case 6:
+                        mostrarActividadesConFiltrado(conn, scanner);
+                        break;
+                    case 7:
+                        try {
+                            conn.rollback(sp);
+                            GestionHotel.mostrarTabla(conn, "Actividad");
+                            GestionHotel.mostrarTabla(conn, "contrata");
+                        } catch (SQLException e) {
+                            System.out.println("Error al descartar los cambios: " + e.getMessage());
+                        }
+                        System.out.println("Cambios descartados.");
+                        break;
+                    case 0:
+                        try {
+                            conn.commit();
+                        } catch (SQLException e) {
+                            System.out.println("Error al guardar los cambios: " + e.getMessage());
+                        }
+
+                        terminar = true;
+                        System.out.println("Saliendo del subsistema de Servicios...");
+                        break;
+                    default:
+                        System.out.println("Opción inválida. Por favor, selecciona una opción válida.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Opción inválida. Por favor, introduce un número.");
+                scanner.nextLine();
             }
         }
     }
@@ -69,13 +101,13 @@ public class Servicios {
             System.out.print("Introduce el aforo máximo: ");
             int aforo = scanner.nextInt();
 
-            if (aforo <= 0) {
-                System.out.println("El aforo debe ser mayor que 0.");
-                return;
-            }
+//            if (aforo <= 0) {
+//                System.out.println("El aforo debe ser mayor que 0.");
+//                return;
+//            }
 
             String sql = "BEGIN " +
-                    "INSERT INTO Actividad (id, nombre, precio, horario, aforo) " +
+                    "INSERT INTO Actividad (nombre, precio, horario, aforo) " +
                     "VALUES (?, ?, TO_DATE(?, 'DD/MM/YYYY HH24:MI'), ?) " +
                     "RETURNING id INTO ?; " +
                     "END;";
@@ -88,7 +120,7 @@ public class Servicios {
 
             stmt.registerOutParameter(5, java.sql.Types.INTEGER);
 
-            stmt.execute();
+            stmt.executeUpdate();
 
             int idGenerado = stmt.getInt(5);
 
@@ -244,9 +276,7 @@ public class Servicios {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: "
-                        + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: "
-                        + rs.getInt("aforo"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Precio: " + rs.getDouble("precio") + ", Horario: " + rs.getString("horario") + ", Aforo: " + rs.getInt("aforo"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar actividades filtradas: " + e.getMessage());
@@ -257,59 +287,62 @@ public class Servicios {
         try {
             Statement stmt = conn.createStatement();
 
-            /*
-             * // Eliminar tabla contrata si existe
-             * stmt.executeUpdate(
-             * "BEGIN " +
-             * "   EXECUTE IMMEDIATE 'DROP TABLE contrata'; " +
-             * "EXCEPTION " +
-             * "   WHEN OTHERS THEN " +
-             * "      IF SQLCODE != -942 THEN " +
-             * "         RAISE; " +
-             * "      END IF; " +
-             * "END;");
-             * 
-             * // Eliminar tabla Actividad si existe
-             * stmt.executeUpdate(
-             * "BEGIN " +
-             * "   EXECUTE IMMEDIATE 'DROP TABLE Actividad'; " +
-             * "EXCEPTION " +
-             * "   WHEN OTHERS THEN " +
-             * "      IF SQLCODE != -942 THEN " +
-             * "         RAISE; " +
-             * "      END IF; " +
-             * "END;");
-             */
-
             // Tabla Actividad
-            stmt.executeUpdate("CREATE TABLE Actividad ("
-                    + "id NUMBER GENERATED BY DEFAULT AS IDENTITY,"
-                    + "nombre VARCHAR2(50) NOT NULL,"
-                    + "precio NUMBER(10, 2) NOT NULL,"
-                    + "horario DATE NOT NULL,"
-                    + "aforo NUMBER NOT NULL,"
-                    + "PRIMARY KEY (id)"
-                    + ")");
+            String crearTablaActividad = """
+            CREATE TABLE Actividad (
+                id NUMBER GENERATED BY DEFAULT AS IDENTITY,
+                nombre VARCHAR2(50) NOT NULL,
+                precio NUMBER(10, 2) NOT NULL,
+                horario DATE NOT NULL,
+                aforo NUMBER NOT NULL,
+                PRIMARY KEY (id)
+            )
+            """;
+            stmt.executeUpdate(crearTablaActividad);
 
             // Tabla Contrata
-            stmt.executeUpdate("CREATE TABLE contrata ("
-                    + "dni VARCHAR2(20) NOT NULL,"
-                    + "id NUMBER NOT NULL,"
-                    + "PRIMARY KEY (dni, id),"
-                    + "FOREIGN KEY (dni) REFERENCES Cliente(dni),"
-                    + "FOREIGN KEY (id) REFERENCES Actividad(id)"
-                    + ")");
+            String crearTablaContrata = """
+            CREATE TABLE contrata (
+                dni VARCHAR2(20) NOT NULL,
+                id NUMBER NOT NULL,
+                PRIMARY KEY (dni, id),
+                FOREIGN KEY (dni) REFERENCES Cliente(dni),
+                FOREIGN KEY (id) REFERENCES Actividad(id)
+            )
+            """;
+            stmt.executeUpdate(crearTablaContrata);
 
-            // stmt.executeUpdate("CREATE SEQUENCE actividad_seq START WITH 1 INCREMENT BY
-            // 1");
+            // Crear el disparador
+            String triggerServicios = """
+            CREATE OR REPLACE TRIGGER trg_validar_actividad
+            BEFORE INSERT ON Actividad
+            FOR EACH ROW
+            BEGIN
+                IF :NEW.aforo <= 0 THEN
+                    RAISE_APPLICATION_ERROR(-60001, 'El aforo debe ser mayor que 0.');
+                END IF;
+
+                IF :NEW.horario < SYSDATE THEN
+                    RAISE_APPLICATION_ERROR(-60002, 'La fecha debe ser igual o posterior a la actual.');
+                END IF;
+            END;
+            """;
+            stmt.execute(triggerServicios);
 
             // Valores de prueba
-            stmt.executeUpdate(
-                    "INSERT INTO Actividad (nombre, precio, horario, aforo) VALUES ('Yoga', 10.0, TO_DATE('06/07/2025 10:00', 'DD/MM/YYYY HH24:MI'), 10)");
-            stmt.executeUpdate(
-                    "INSERT INTO Actividad (nombre, precio, horario, aforo) VALUES ('Pilates', 15.0, TO_DATE('06/07/2025 12:00', 'DD/MM/YYYY HH24:MI'), 15)");
-            stmt.executeUpdate(
-                    "INSERT INTO Actividad (nombre, precio, horario, aforo) VALUES ('Spinning', 20.0, TO_DATE('06/07/2025 14:00', 'DD/MM/YYYY HH24:MI'), 20)");
+            String datosPrueba = """
+            BEGIN
+                INSERT INTO Actividad (nombre, precio, horario, aforo) 
+                VALUES ('Yoga', 10.0, TO_DATE('06/07/2025 10:00', 'DD/MM/YYYY HH24:MI'), 10);
+                
+                INSERT INTO Actividad (nombre, precio, horario, aforo) 
+                VALUES ('Pilates', 15.0, TO_DATE('06/07/2025 12:00', 'DD/MM/YYYY HH24:MI'), 15);
+                
+                INSERT INTO Actividad (nombre, precio, horario, aforo) 
+                VALUES ('Spinning', 20.0, TO_DATE('06/07/2025 14:00', 'DD/MM/YYYY HH24:MI'), 20);
+            END;
+        """;
+            stmt.executeUpdate(datosPrueba);
 
             stmt.close();
 

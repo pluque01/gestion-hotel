@@ -30,6 +30,8 @@ public class Main {
             boolean exit = false;
             Scanner scanner = new Scanner(System.in);
 
+            conn.setAutoCommit(false);
+
             while (!exit) {
                 System.out.println("\n---- Menú Principal ----");
                 System.out.println("1. Borrar y crear tablas");
