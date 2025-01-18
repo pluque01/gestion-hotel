@@ -11,44 +11,71 @@ public class GestionSuministros {
         Scanner scanner = new Scanner(System.in);
         boolean salir = false;
 
-        while (!salir) {
-            System.out.println("\n--- Subsistema de Gestión de Suministros ---");
-            System.out.println("1. Añadir suministro");
-            System.out.println("2. Modificar suministro");
-            System.out.println("3. Eliminar suministro");
-            System.out.println("4. Mostrar suministros");
-            System.out.println("0. Volver al menú principal");
+        try {
+            conn.setAutoCommit(false);
 
-            System.out.print("Elige una opción: ");
-            int opcion = scanner.nextInt();
-            scanner.nextLine(); // Consumir la nueva línea
+            while (!salir) {
+                System.out.println("\n--- Subsistema de Gestión de Suministros ---");
+                System.out.println("1. Añadir suministro");
+                System.out.println("2. Modificar suministro");
+                System.out.println("3. Eliminar suministro");
+                System.out.println("4. Mostrar suministros");
+                System.out.println("5. Descartar cambios");
+                System.out.println("0. Guardar cambios y salir");
 
-            switch (opcion) {
-                case 1:
-                    anadirSuministro(conn, scanner);
-                    break;
-                case 2:
-                    if (!haySuministros(conn)) {
-                        System.out.println("No hay suministros para modificar.");
-                    } else {
-                        modificarSuministro(conn, scanner);
-                    }
-                    break;
-                case 3:
-                    if (!haySuministros(conn)) {
-                        System.out.println("No hay suministros para eliminar.");
-                    } else {
-                        eliminarSuministro(conn, scanner);
-                    }
-                    break;
-                case 4:
-                    mostrarSuministros(conn);
-                    break;
-                case 0:
-                    salir = true;
-                    break;
-                default:
-                    System.out.println("Opción inválida.");
+                System.out.print("Elige una opción: ");
+                int opcion = scanner.nextInt();
+                scanner.nextLine(); // Consumir la nueva línea
+
+                switch (opcion) {
+                    case 1:
+                        anadirSuministro(conn, scanner);
+                        break;
+                    case 2:
+                        if (!haySuministros(conn)) {
+                            System.out.println("No hay suministros para modificar.");
+                        } else {
+                            modificarSuministro(conn, scanner);
+                        }
+                        break;
+                    case 3:
+                        if (!haySuministros(conn)) {
+                            System.out.println("No hay suministros para eliminar.");
+                        } else {
+                            eliminarSuministro(conn, scanner);
+                        }
+                        break;
+                    case 4:
+                        mostrarSuministros(conn);
+                        break;
+                    case 5:
+                        try {
+                            conn.rollback();
+                            System.out.println("Se han descartado todos los cambios no guardados.");
+                        } catch (SQLException e) {
+                            System.out.println("Error al descartar los cambios: " + e.getMessage());
+                        }
+                        break;
+                    case 0:
+                        try {
+                            conn.commit();
+                            System.out.println("Cambios guardados correctamente. Saliendo...");
+                            salir = true;
+                        } catch (SQLException e) {
+                            System.out.println("Error al guardar los cambios: " + e.getMessage());
+                        }
+                        break;
+                    default:
+                        System.out.println("Opción inválida.");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al configurar la transacción: " + e.getMessage());
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error al restaurar el modo de autocommit: " + e.getMessage());
             }
         }
     }
@@ -72,33 +99,58 @@ public class GestionSuministros {
                     "ultima_fecha_reposicion DATE" +
                     ")";
             stmt.executeUpdate(sqlTabla);
-
+    
+            String sqlTrigger = "CREATE OR REPLACE TRIGGER check_duplicate_suministro " +
+                    "BEFORE INSERT ON suministro " +
+                    "FOR EACH ROW " +
+                    "DECLARE " +
+                    "v_count NUMBER; " +
+                    "BEGIN " +
+                    "SELECT COUNT(*) INTO v_count " +
+                    "FROM suministro " +
+                    "WHERE nombre = :NEW.nombre AND proveedor = :NEW.proveedor; " +
+                    "IF v_count > 0 THEN " +
+                    "RAISE_APPLICATION_ERROR(-20001, 'Error: Producto duplicado con el mismo nombre y proveedor.'); " +
+                    "END IF; " +
+                    "END;";
+            stmt.executeUpdate(sqlTrigger);
+    
+            System.out.println("Tabla 'suministro' y trigger creados correctamente.");
+    
+            // Insertar suministros significativos
+            try {
+                stmt.executeUpdate(
+                        "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
+                        "VALUES ('Papel A4', 500, 'Papelería Central', TO_DATE('2025-01-01', 'YYYY-MM-DD'))");
+                stmt.executeUpdate(
+                        "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
+                        "VALUES ('Toner Negro', 50, 'TonerPlus', TO_DATE('2025-01-05', 'YYYY-MM-DD'))");
+                stmt.executeUpdate(
+                        "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
+                        "VALUES ('Lápices HB', 300, 'Artículos Escolares S.L.', TO_DATE('2025-01-10', 'YYYY-MM-DD'))");
+                stmt.executeUpdate(
+                        "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
+                        "VALUES ('Café en Grano', 100, 'Cafetería La Mejor', TO_DATE('2025-01-15', 'YYYY-MM-DD'))");
+                stmt.executeUpdate(
+                        "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
+                        "VALUES ('Carpetas A4', 200, 'Papelería Central', TO_DATE('2025-01-20', 'YYYY-MM-DD'))");
+    
+                conn.commit(); // Confirmar todos los cambios
+                System.out.println("Suministros iniciales añadidos correctamente.");
+            } catch (SQLException e) {
+                System.out.println("Error al insertar suministros iniciales: " + e.getMessage());
+                try {
+                    conn.rollback(); // Revertir en caso de error
+                    System.out.println("Se han revertido los cambios debido a un error.");
+                } catch (SQLException ex) {
+                    System.out.println("Error al intentar revertir los cambios: " + ex.getMessage());
+                }
+            }
         } catch (SQLException e) {
             System.out.println("Error al verificar o crear la tabla 'suministro': " + e.getMessage());
         }
-
-        String sql = "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "toallas");
-            pstmt.setInt(2, 3);
-            pstmt.setString(3, "fernando alonso");
-            pstmt.setDate(4, Date.valueOf("2025-01-04"));
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("Error al añadir el suministro: " + e.getMessage());
-        }
-
-        sql = "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "cigarros");
-            pstmt.setInt(2, 9999);
-            pstmt.setString(3, "el fary");
-            pstmt.setDate(4, Date.valueOf("2027-01-01"));
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("Error al añadir el suministro: " + e.getMessage());
-        }
     }
+    
 
     public static boolean haySuministros(Connection conn) {
         String sql = "SELECT COUNT(*) FROM suministro";
@@ -198,9 +250,7 @@ public class GestionSuministros {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             System.out.println("\n--- Lista de Suministros ---");
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: "
-                        + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor")
-                        + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
+                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: " + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor") + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
             }
         } catch (SQLException e) {
             System.out.println("Error al mostrar los suministros: " + e.getMessage());
