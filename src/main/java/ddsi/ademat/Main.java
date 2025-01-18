@@ -19,14 +19,14 @@ public class Main {
             // Informar al usuario sobre el tratamiento de sus datos y sus derechos
             System.out.println("\n\nSus datos personales serán tratados conforme al Reglamento General de Protección de Datos (RGPD) y la Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD).");
             System.out.println("Puede consustar sus derechos en la Agencia Española de Protección de Datos (www.aepd.es).");
-
+          
             // Desactivar auto-commit
             try {
                 conn.setAutoCommit(false);
             } catch (SQLException e) {
                 System.out.println("Error al desactivar auto-commit: " + e.getMessage());
             }
-            
+          
             boolean exit = false;
             Scanner scanner = new Scanner(System.in);
 
