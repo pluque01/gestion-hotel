@@ -18,6 +18,13 @@ public class Main {
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             System.out.println("Conexión establecida con éxito a la base de datos");
 
+            // Desactivar auto-commit
+            try {
+                conn.setAutoCommit(false);
+            } catch (SQLException e) {
+                System.out.println("Error al desactivar auto-commit: " + e.getMessage());
+            }
+
             boolean exit = false;
             Scanner scanner = new Scanner(System.in);
 
@@ -84,6 +91,11 @@ public class Main {
         Facturacion.crearTablas(conn);
         Servicios.crearTablas(conn);
         GestionSuministros.crearTablas(conn);
+        try {
+            conn.commit();
+        } catch (SQLException e) {
+            System.out.println("Error al hacer commit: " + e.getMessage());
+        }
         System.out.println("Tablas borradas y creadas con éxito");
         // TODO: Añadir cada uno su función de borrar y crear tablas
     }

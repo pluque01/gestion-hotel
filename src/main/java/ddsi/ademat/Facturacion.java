@@ -55,6 +55,14 @@ public class Facturacion {
         boolean terminar = false;
         Scanner scanner = new Scanner(System.in);
 
+        // Hacer savepoints para poder descartar cambios
+        Savepoint sp = null;
+        try {
+            sp = conn.setSavepoint();
+        } catch (SQLException e) {
+            System.out.println("Error al crear el savepoint: " + e.getMessage());
+        }
+
         while (!terminar) {
             System.out.println("\n--- Menú de Facturación ---");
             System.out.println("1. Añadir método de pago");
@@ -62,7 +70,8 @@ public class Facturacion {
             System.out.println("3. Generar factura");
             System.out.println("4. Consultar factura");
             System.out.println("5. Reembolsar factura");
-            System.out.println("0. Salir");
+            System.out.println("6. Descartar cambios");
+            System.out.println("0. Guardar y salir");
 
             System.out.print("Elige una opción: ");
             int choice = scanner.nextInt();
@@ -83,7 +92,22 @@ public class Facturacion {
                 case 5:
                     reembolsarFactura(conn);
                     break;
+                case 6:
+                    try {
+                        conn.rollback(sp);
+                        GestionHotel.mostrarTabla(conn, "Factura");
+                        GestionHotel.mostrarTabla(conn, "Cliente");
+                    } catch (SQLException e) {
+                        System.out.println("Error al descartar los cambios: " + e.getMessage());
+                    }
+                    System.out.println("Cambios descartados.");
+                    break;
                 case 0:
+                    try {
+                        conn.commit();
+                    } catch (SQLException e) {
+                        System.out.println("Error al guardar los cambios: " + e.getMessage());
+                    }
                     terminar = true;
                     System.out.println("Saliendo del subsistema de Facturación...");
                     break;
@@ -119,6 +143,8 @@ public class Facturacion {
         try {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("UPDATE Cliente SET tarjeta = '" + numTarjeta + "' WHERE dni = '" + dni + "'");
+            System.out.println("Método de pago añadido con éxito.");
+            GestionHotel.mostrarTabla(conn, "Cliente");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -142,6 +168,8 @@ public class Facturacion {
                 return;
             }
             stmt.executeUpdate("UPDATE Cliente SET tarjeta = NULL WHERE dni = '" + dni + "'");
+            System.out.println("Método de pago eliminado con éxito.");
+            GestionHotel.mostrarTabla(conn, "Cliente");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -189,6 +217,7 @@ public class Facturacion {
                     if (rs2.next()) {
                         int idGenerado = rs2.getInt(1); // Recupera la clave generada
                         System.out.println("Factura generada con identificador " + idGenerado);
+                        GestionHotel.mostrarTabla(conn, "Factura");
                     } else {
                         System.out.println("No se generó ninguna clave.");
                     }
@@ -244,6 +273,7 @@ public class Facturacion {
             // }
             stmt.executeUpdate("UPDATE Factura SET reembolsada = 1 WHERE id = '" + codFactura + "'");
             System.out.println("Factura reembolsada con éxito.");
+            GestionHotel.mostrarTabla(conn, "Factura");
         } catch (SQLException e) {
             e.getMessage();
         }
