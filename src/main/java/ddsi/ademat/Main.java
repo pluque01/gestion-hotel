@@ -116,6 +116,6 @@ public class Main {
         GestionTrabajadores.mostrarTablas(conn);
         Facturacion.mostrarTablas(conn);
         Servicios.mostrarTablas(conn);
-        GestionSuministros.mostrarSuministros(conn);
+        GestionSuministros.mostrarTablas(conn);
     }
 }
