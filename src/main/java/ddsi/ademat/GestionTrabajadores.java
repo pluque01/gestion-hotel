@@ -20,7 +20,6 @@ public class GestionTrabajadores {
                 + "email VARCHAR(50) NOT NULL,"
                 + "puesto VARCHAR(20) NOT NULL CHECK (puesto IN ('ADMINISTRADOR', 'RECEPCIONISTA', 'LIMPIADOR')),"
                 + "nomina DECIMAL(10, 2) NOT NULL,"
-                + "fecha_contratacion DATE DEFAULT SYSDATE,"
                 + "fecha_ultimo_aumento DATE DEFAULT SYSDATE,"
                 + "PRIMARY KEY (dni)"
                 + ")");
@@ -48,11 +47,11 @@ public class GestionTrabajadores {
             + "        raise_application_error(-20601, 'El salario no puede ser inferior al salario mínimo interprofesional: ' || salario_minimo || ' euros'); "
             + "    END IF; "
             + "    IF ABS(MONTHS_BETWEEN(fecha_actual, :NEW.fecha_ultimo_aumento)) > 24 THEN "
-            + "        raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+            + "        raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador con DNI: ' || :NEW.dni); "
             + "    END IF; "
             + "    IF UPDATING AND :NEW.nomina = :OLD.nomina THEN "
             + "        IF ABS(MONTHS_BETWEEN(:OLD.fecha_ultimo_aumento, :NEW.fecha_ultimo_aumento)) > 24 THEN "
-            + "            raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador: ' || :NEW.dni); "
+            + "            raise_application_error(-20602, 'Han pasado más de 2 años sin que se modifique el sueldo del trabajador con DNI: ' || :NEW.dni); "
             + "        END IF; "
             + "    END IF; "
             + "END;";
@@ -75,7 +74,7 @@ public class GestionTrabajadores {
         try {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate(
-                "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion) VALUES ('12345678A', 'Juan', 'Pérez', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00, TO_DATE('2020-01-01', 'YYYY-MM-DD'))");
+                "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_ultimo_aumento) VALUES ('12345678A', 'Juan', 'Cuesta', 'Calle Desengaño 21', '123456789', 'juan.perez@example.com', 'ADMINISTRADOR', 1500.00, TO_DATE('2025-01-01', 'YYYY-MM-DD'))");
             conn.commit(); // Hacer commit después de insertar cada fila
             stmt.executeUpdate(
                 "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina) VALUES ('87654321B', 'Ana', 'García', 'Avenida Andalucía 742', '987654321', 'ana.garcia@example.com', 'RECEPCIONISTA', 1200.00)");
@@ -95,58 +94,61 @@ public class GestionTrabajadores {
 
         boolean terminar = false;
 
-        while (!terminar) {
-            System.out.println("\n--- Menú de Gestión de Trabajadores ---");
-            System.out.println("1. Dar de alta trabajador");
-            System.out.println("2. Dar de baja trabajador");
-            System.out.println("3. Modificar datos de trabajador");
-            System.out.println("4. Consultar datos de trabajador");
-            System.out.println("5. Mostrar listado de trabajadores");
-            System.out.println("0. Salir");
+        try {
+            conn.commit(); // Hacer commit antes de empezar el bucle interactivo
 
-            System.out.print("Elige una opción: ");
+            while (!terminar) {
+                System.out.println("\n--- Menú de Gestión de Trabajadores ---");
+                System.out.println("1. Dar de alta trabajador");
+                System.out.println("2. Dar de baja trabajador");
+                System.out.println("3. Modificar datos de trabajador");
+                System.out.println("4. Consultar datos de trabajador");
+                System.out.println("5. Mostrar listado de trabajadores");
+                System.out.println("6. Deshacer cambios");
+                System.out.println("0. Salir");
 
-            if (scanner.hasNextInt()) {
-                int choice = scanner.nextInt();
-                scanner.nextLine(); // Consumir el salto de línea
+                System.out.print("Elige una opción: ");
 
-                try {
-                    conn.commit();
-                } catch (SQLException e) {
-                    System.out.println("Error al hacer commit: " + e.getMessage());
-                }
+                if (scanner.hasNextInt()) {
+                    int choice = scanner.nextInt();
+                    scanner.nextLine(); // Consumir el salto de línea
 
-                switch (choice) {
-                    case 1:
-                        insertarTrabajador(conn, scanner);
-                        break;
-                    case 2:
-                        eliminarTrabajador(conn, scanner);
-                        break;
-                    case 3:
-                        modificarTrabajador(conn, scanner);
-                        break;
-                    case 4:
-                        consultarTrabajador(conn, scanner);
-                        break;
-                    case 5:
-                        mostrarTablas(conn);
-                        break;
-                    case 0:
-                        terminar = true;
-                        System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
-                        break;
-                    default:
-                        System.out.println("Opción desconocida. Por favor, elige una opción válida.");
-                }
-
-
-                try {
-                    conn.commit();
-                } catch (SQLException e) {
-                    System.out.println("Error al hacer commit: " + e.getMessage());
+                    switch (choice) {
+                        case 1:
+                            insertarTrabajador(conn, scanner);
+                            break;
+                        case 2:
+                            eliminarTrabajador(conn, scanner);
+                            break;
+                        case 3:
+                            modificarTrabajador(conn, scanner);
+                            break;
+                        case 4:
+                            consultarTrabajador(conn, scanner);
+                            break;
+                        case 5:
+                            mostrarTablas(conn);
+                            break;
+                        case 6:
+                            try {
+                                conn.rollback();
+                                System.out.println("Cambios deshechos.");
+                            } catch (SQLException e) {
+                                System.out.println("Error al hacer rollback: " + e.getMessage());
+                            }
+                            break;
+                        case 0:
+                            terminar = true;
+                            conn.commit();
+                            System.out.println("Saliendo del subsistema de Gestión de Trabajadores...");
+                            break;
+                        default:
+                            System.out.println("Opción desconocida. Por favor, elige una opción válida.");
+                    }
                 }
             }
+        } catch (SQLException e) {
+            System.out.println("Error en el bucle interactivo: " + e.getMessage());
         }
     }
 
@@ -167,19 +169,17 @@ public class GestionTrabajadores {
             String email = scanner.nextLine();
             System.out.print("Puesto (ADMINISTRADOR, RECEPCIONISTA, LIMPIADOR): ");
             String puesto = scanner.nextLine();
-            System.out.print("Fecha de contratación (YYYY-MM-DD) [opcional]: ");
-            String fechaContratacionStr = scanner.nextLine();
             System.out.print("Fecha del último aumento (YYYY-MM-DD) [opcional]: ");
             String fechaUltimoAumentoStr = scanner.nextLine();
 
-            conn.commit(); // Hacer commit después de leer los datos
+            Savepoint sp = conn.setSavepoint(); // Creamos un savepoint después de leer los datos
     
             boolean success = false;
             while (!success) {
                 System.out.print("Nómina: ");
                 double nomina = Double.parseDouble(scanner.nextLine());
 
-                String sql = "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_contratacion, fecha_ultimo_aumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String sql = "INSERT INTO Trabajador (dni, nombre, apellidos, domicilio, telefono, email, puesto, nomina, fecha_ultimo_aumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, dni);
                     pstmt.setString(2, nombre);
@@ -189,16 +189,15 @@ public class GestionTrabajadores {
                     pstmt.setString(6, email);
                     pstmt.setString(7, puesto);
                     pstmt.setDouble(8, nomina);
-                    pstmt.setDate(9, fechaContratacionStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaContratacionStr));
-                    pstmt.setDate(10, fechaUltimoAumentoStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaUltimoAumentoStr));
+                    pstmt.setDate(9, fechaUltimoAumentoStr.isEmpty() ? Date.valueOf(LocalDate.now()) : Date.valueOf(fechaUltimoAumentoStr));
                     pstmt.executeUpdate();
-                    conn.commit();
+                    // conn.commit();
                     System.out.println("Trabajador insertado correctamente.");
                     success = true;
                 } catch (SQLException e) {
                     if (e.getErrorCode() == 20601 || e.getErrorCode() == 20602) {
                         System.out.println("Error del disparador: " + e.getMessage());
-                        conn.rollback();
+                        conn.rollback(sp);
                         System.out.println("Por favor, introduce un nuevo valor para la nómina.");
                     } else {
                         System.out.println("Error al insertar el trabajador: " + e.getMessage());
@@ -233,7 +232,7 @@ public class GestionTrabajadores {
                 }
             }
 
-            conn.commit();
+            // conn.commit();
         } catch (Exception e) {
             System.out.println("Error al eliminar el trabajador: " + e.getMessage());
             try {
@@ -273,8 +272,6 @@ public class GestionTrabajadores {
             String email = scanner.nextLine();
             System.out.print("Puesto (ADMINISTRADOR, RECEPCIONISTA, LIMPIADOR): ");
             String puesto = scanner.nextLine();
-            System.out.print("Fecha de contratación (YYYY-MM-DD): ");
-            String fechaContratacionStr = scanner.nextLine();
 
             Savepoint savepoint1 = conn.setSavepoint("Savepoint1"); // Creamos un savepoint después de leer los datos
     
@@ -318,11 +315,6 @@ public class GestionTrabajadores {
                     sql.append("puesto = ?");
                     first = false;
                 }
-                if (!fechaContratacionStr.isEmpty()) {
-                    if (!first)
-                        sql.append(", ");
-                    sql.append("fecha_contratacion = ?");
-                }
 
                 System.out.print("Nómina: ");
                 String nominaStr = scanner.nextLine();
@@ -343,7 +335,6 @@ public class GestionTrabajadores {
                     if (!telefono.isEmpty()) pstmt.setString(index++, telefono);
                     if (!email.isEmpty()) pstmt.setString(index++, email);
                     if (!puesto.isEmpty()) pstmt.setString(index++, puesto);
-                    if (!fechaContratacionStr.isEmpty()) pstmt.setString(index++, fechaContratacionStr);
                     if (!nominaStr.isEmpty()) {
                         pstmt.setString(index++, nominaStr);
                         pstmt.setDate(index++, new java.sql.Date(System.currentTimeMillis())); // fecha_ultimo_aumento
@@ -354,7 +345,7 @@ public class GestionTrabajadores {
                     if (out != 0) {
                         System.out.println("Trabajador modificado correctamente.");
                         success = true;
-                        conn.commit();
+                        // conn.commit();
                     } else {
                         System.out.println("No ha proporcionado ningún dato.");
                         conn.rollback();
@@ -404,7 +395,6 @@ public class GestionTrabajadores {
                     System.out.println("Email: " + rs.getString("email"));
                     System.out.println("Puesto: " + rs.getString("puesto"));
                     System.out.println("Nómina: " + rs.getDouble("nomina"));
-                    System.out.println("Fecha de contratación: " + rs.getTimestamp("fecha_contratacion"));
                     System.out.println("Fecha del último aumento: " + rs.getTimestamp("fecha_ultimo_aumento"));
                 } else {
                     System.out.println("No se encontró ningún trabajador con el DNI proporcionado.");
