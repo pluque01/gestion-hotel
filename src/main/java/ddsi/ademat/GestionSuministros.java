@@ -6,8 +6,6 @@ import java.util.Scanner;
 public class GestionSuministros {
 
     public static void bucleInteractivo(Connection conn) {
-        verificarTabla(conn);
-
         Scanner scanner = new Scanner(System.in);
         boolean salir = false;
 
@@ -20,7 +18,8 @@ public class GestionSuministros {
                 System.out.println("2. Modificar suministro");
                 System.out.println("3. Eliminar suministro");
                 System.out.println("4. Mostrar suministros");
-                System.out.println("5. Descartar cambios");
+                System.out.println("5. Filtrar productos por proveedor");
+                System.out.println("6. Descartar cambios");
                 System.out.println("0. Guardar cambios y salir");
 
                 System.out.print("Elige una opción: ");
@@ -46,9 +45,12 @@ public class GestionSuministros {
                         }
                         break;
                     case 4:
-                        mostrarSuministros(conn);
+                        mostrarTablas(conn);
                         break;
                     case 5:
+                        filtrarProductosPorProveedor(conn, scanner);
+                        break;
+                    case 6:
                         try {
                             conn.rollback();
                             System.out.println("Se han descartado todos los cambios no guardados.");
@@ -80,12 +82,30 @@ public class GestionSuministros {
         }
     }
 
-    public static void verificarTabla(Connection conn) {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.executeQuery("SELECT 1 FROM suministro WHERE ROWNUM = 1");
+    public static void filtrarProductosPorProveedor(Connection conn, Scanner scanner) {
+        System.out.print("Introduce el nombre del proveedor: ");
+        String proveedor = scanner.nextLine();
+
+        String sql = "SELECT id, nombre, cantidad, ultima_fecha_reposicion FROM suministro WHERE proveedor = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, proveedor);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                boolean hayResultados = false;
+                System.out.println("\n--- Productos del proveedor: " + proveedor + " ---");
+                while (rs.next()) {
+                    hayResultados = true;
+                    System.out.printf("ID: %d, Nombre: %s, Cantidad: %d, Última Fecha de Reposición: %s\n",
+                            rs.getInt("id"),
+                            rs.getString("nombre"),
+                            rs.getInt("cantidad"),
+                            rs.getDate("ultima_fecha_reposicion"));
+                }
+                if (!hayResultados) {
+                    System.out.println("No se encontraron productos para el proveedor especificado.");
+                }
+            }
         } catch (SQLException e) {
-            System.out.println("La tabla 'suministro' no existe. Creándola...");
-            crearTablas(conn);
+            System.out.println("Error al filtrar productos por proveedor: " + e.getMessage());
         }
     }
 
@@ -100,8 +120,8 @@ public class GestionSuministros {
                     ")";
             stmt.executeUpdate(sqlTabla);
     
-            String sqlTrigger = "CREATE OR REPLACE TRIGGER check_duplicate_suministro " +
-                    "BEFORE INSERT ON suministro " +
+            String sqlTrigger = "CREATE OR REPLACE TRIGGER trg_suministro_duplicado " +
+                    "BEFORE INSERT OR UPDATE ON suministro " +
                     "FOR EACH ROW " +
                     "DECLARE " +
                     "v_count NUMBER; " +
@@ -114,29 +134,30 @@ public class GestionSuministros {
                     "END IF; " +
                     "END;";
             stmt.executeUpdate(sqlTrigger);
+            System.out.println("Disparador 'trg_suministro_duplicado' creado o reemplazado correctamente.");
     
-            System.out.println("Tabla 'suministro' y trigger creados correctamente.");
+            // System.out.println("Tabla 'suministro' y trigger creados correctamente.");
     
             // Insertar suministros significativos
             try {
                 stmt.executeUpdate(
                         "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
-                        "VALUES ('Papel A4', 500, 'Papelería Central', TO_DATE('2025-01-01', 'YYYY-MM-DD'))");
+                        "VALUES ('Papel A4', 500, 'Papeleria Central', TO_DATE('2025-01-01', 'YYYY-MM-DD'))");
                 stmt.executeUpdate(
                         "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
                         "VALUES ('Toner Negro', 50, 'TonerPlus', TO_DATE('2025-01-05', 'YYYY-MM-DD'))");
                 stmt.executeUpdate(
                         "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
-                        "VALUES ('Lápices HB', 300, 'Artículos Escolares S.L.', TO_DATE('2025-01-10', 'YYYY-MM-DD'))");
+                        "VALUES ('Lapices HB', 300, 'Articulos Escolares', TO_DATE('2025-01-10', 'YYYY-MM-DD'))");
                 stmt.executeUpdate(
                         "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
-                        "VALUES ('Café en Grano', 100, 'Cafetería La Mejor', TO_DATE('2025-01-15', 'YYYY-MM-DD'))");
+                        "VALUES ('Cafe en Grano', 100, 'Cafeteria La Mejor', TO_DATE('2025-01-15', 'YYYY-MM-DD'))");
                 stmt.executeUpdate(
                         "INSERT INTO suministro (nombre, cantidad, proveedor, ultima_fecha_reposicion) " +
-                        "VALUES ('Carpetas A4', 200, 'Papelería Central', TO_DATE('2025-01-20', 'YYYY-MM-DD'))");
+                        "VALUES ('Carpetas A4', 200, 'Papeleria Central', TO_DATE('2025-01-20', 'YYYY-MM-DD'))");
     
                 conn.commit(); // Confirmar todos los cambios
-                System.out.println("Suministros iniciales añadidos correctamente.");
+                // System.out.println("Suministros iniciales añadidos correctamente.");
             } catch (SQLException e) {
                 System.out.println("Error al insertar suministros iniciales: " + e.getMessage());
                 try {
@@ -245,15 +266,12 @@ public class GestionSuministros {
         }
     }
 
-    public static void mostrarSuministros(Connection conn) {
-        String sql = "SELECT * FROM suministro";
-        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-            System.out.println("\n--- Lista de Suministros ---");
-            while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") + ", Nombre: " + rs.getString("nombre") + ", Cantidad: " + rs.getInt("cantidad") + ", Proveedor: " + rs.getString("proveedor") + ", Última Fecha de Reposición: " + rs.getDate("ultima_fecha_reposicion"));
-            }
+    public static void mostrarTablas(Connection conn) {
+        try {
+            System.out.println("Contenido de Suministro:");
+            GestionHotel.mostrarTabla(conn, "suministro");
         } catch (SQLException e) {
-            System.out.println("Error al mostrar los suministros: " + e.getMessage());
+            System.out.println("Error al mostrar las tablas: " + e.getMessage());
         }
     }
 }
