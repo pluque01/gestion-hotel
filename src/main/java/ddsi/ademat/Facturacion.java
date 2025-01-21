@@ -275,7 +275,7 @@ public class Facturacion {
             System.out.println("Factura reembolsada con éxito.");
             GestionHotel.mostrarTabla(conn, "Factura");
         } catch (SQLException e) {
-            e.getMessage();
+            System.out.println("Error al reembolsar: la factura ya ha sido reembolsada\n" + e.getMessage());
         }
     }
 }
